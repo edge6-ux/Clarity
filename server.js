@@ -1,7 +1,6 @@
 require("dotenv").config();
 const express = require("express");
 const multer = require("multer");
-const pdfParse = require("pdf-parse");
 const OpenAI = require("openai");
 const path = require("path");
 
@@ -106,6 +105,7 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
 
     // Handle PDF — extract text and append
     if (file && file.mimetype === "application/pdf") {
+      const pdfParse = require("pdf-parse");
       const parsed = await pdfParse(file.buffer);
       userText += `\n\nContent from uploaded PDF:\n${parsed.text}`;
       userContent.push({ type: "text", text: userText });
