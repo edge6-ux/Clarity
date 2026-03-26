@@ -3,10 +3,11 @@ const express = require("express");
 const multer = require("multer");
 const pdfParse = require("pdf-parse");
 const OpenAI = require("openai");
+const path = require("path");
 
 const app = express();
 app.use(express.json());
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, "public")));
 
 const client = new OpenAI.default({ apiKey: process.env.OPENAI_API_KEY });
 const upload = multer({ storage: multer.memoryStorage() });
