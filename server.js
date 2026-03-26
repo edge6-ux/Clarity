@@ -105,9 +105,17 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
 
     // Handle PDF — extract text and append
     if (file && file.mimetype === "application/pdf") {
-      const pdfParse = require("pdf-parse");
-      const parsed = await pdfParse(file.buffer);
-      userText += `\n\nContent from uploaded PDF:\n${parsed.text}`;
+      const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
+      pdfjsLib.GlobalWorkerOptions.workerSrc = false;
+      const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(file.buffer) });
+      const pdf = await loadingTask.promise;
+      let pdfText = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        pdfText += content.items.map(item => item.str).join(" ") + "\n";
+      }
+      userText += `\n\nContent from uploaded PDF:\n${pdfText}`;
       userContent.push({ type: "text", text: userText });
     }
     // Handle image — send as vision input
