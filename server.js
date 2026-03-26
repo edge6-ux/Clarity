@@ -144,5 +144,10 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Clarity engine running on port ${PORT}`));
+// Local dev
+if (process.env.NODE_ENV !== "production") {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => console.log(`Clarity engine running on port ${PORT}`));
+}
+
+module.exports = app;
