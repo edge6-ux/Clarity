@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Clarity</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* ─── Accent tokens (overridden per theme) ─────────────────────── */
+      :root {
+        --orb-c1: rgba(176,96,255,0.95);
+        --orb-c2: rgba(112,72,210,0.65);
+        --orb-c3: rgba(44,18,96,0.25);
+        --orb-hi: rgba(200,168,255,0.5);
+        --btn-from: #b060ff;
+        --btn-to:   #5c48d1;
+        --btn-glow: rgba(176,96,255,0.45);
+        --focus-border: rgba(176,96,255,0.55);
+        --focus-ring:   rgba(176,96,255,0.12);
+        --chip-bg:     rgba(176,96,255,0.18);
+        --chip-border: rgba(176,96,255,0.38);
+        --title-end:   #c49dff;
+      }
+
+      *, *::before, *::after { font-family: 'Inter', sans-serif; }
+
+      body { background-color: #000; min-height: 100vh; }
+
+      /* ─── Noise grain ───────────────────────────────────────────────── */
+      body::before {
+        content: "";
+        position: fixed; inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+        background-repeat: repeat; background-size: 256px 256px;
+        pointer-events: none; z-index: 9999; mix-blend-mode: overlay;
+      }
+
+      /* ─── Orbiting glow ─────────────────────────────────────────────── */
+      .orb {
+        position: fixed; width: 75vmax; height: 75vmax;
+        top: 50%; left: 50%;
+        border-radius: 50%;
+        background: radial-gradient(circle at 50% 50%,
+          var(--orb-c1) 0%, var(--orb-c2) 18%, var(--orb-c3) 42%, transparent 68%);
+        filter: blur(38px);
+        pointer-events: none; z-index: 1;
+        animation: circularOrbit 18s linear infinite;
+        will-change: transform;
+        transition: background 0.6s ease;
+      }
+      .orb::after {
+        content: ""; position: absolute; inset: 15%; border-radius: 50%;
+        background: radial-gradient(circle at 50% 50%, var(--orb-hi) 0%, transparent 60%);
+        filter: blur(16px);
+      }
+      /* Double-rotation trick: rotate coord system → translate outward → counter-rotate orb.
+         As the outer angle sweeps 0→360°, the orb center traces a perfect circle. */
+      @keyframes circularOrbit {
+        from { transform: translate(-50%,-50%) rotate(0deg)   translateX(42vmin) rotate(0deg);   }
+        to   { transform: translate(-50%,-50%) rotate(360deg) translateX(42vmin) rotate(-360deg); }
+      }
+
+      /* Pulse — centered breathing orb */
+      @keyframes pulseAnim {
+        0%, 100% { transform: translate(-50%,-50%) scale(0.82); opacity: 0.52; }
+        40%      { transform: translate(-50%,-50%) scale(1.10); opacity: 0.92; }
+        60%      { transform: translate(-50%,-50%) scale(1.05); opacity: 0.84; }
+      }
+
+      /* Aurora — wide horizontal band drifting across */
+      @keyframes auroraAnim {
+        0%   { transform: translateX(0)    translateY(0)    scaleY(1.00) skewX(0deg);  opacity: 0.60; }
+        20%  { transform: translateX(8vw)  translateY(-3vh) scaleY(1.30) skewX(-4deg); opacity: 0.82; }
+        40%  { transform: translateX(-4vw) translateY(2vh)  scaleY(0.72) skewX(3deg);  opacity: 0.65; }
+        60%  { transform: translateX(12vw) translateY(-1vh) scaleY(1.12) skewX(-2deg); opacity: 0.90; }
+        80%  { transform: translateX(3vw)  translateY(4vh)  scaleY(0.88) skewX(4deg);  opacity: 0.74; }
+        100% { transform: translateX(0)    translateY(0)    scaleY(1.00) skewX(0deg);  opacity: 0.60; }
+      }
+
+      /* ─── Glass ─────────────────────────────────────────────────────── */
+      .glass {
+        background: rgba(255,255,255,0.04);
+        backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+        border: 1px solid rgba(255,255,255,0.09);
+      }
+
+      /* ─── Inputs ────────────────────────────────────────────────────── */
+      .glass-input {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        color: #fff;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+      .glass-input::placeholder { color: rgba(255,255,255,0.25); }
+      .glass-input:focus {
+        outline: none;
+        border-color: var(--focus-border);
+        box-shadow: 0 0 0 3px var(--focus-ring);
+      }
+
+      /* ─── Buttons ───────────────────────────────────────────────────── */
+      .btn-primary {
+        background: linear-gradient(135deg, var(--btn-from) 0%, var(--btn-to) 100%);
+        color: #fff; font-weight: 600; letter-spacing: 0.01em;
+        transition: opacity 0.15s, transform 0.1s, box-shadow 0.2s;
+      }
+      .btn-primary:hover:not(:disabled) { opacity: 0.88; box-shadow: 0 0 22px var(--btn-glow); }
+      .btn-primary:active:not(:disabled) { transform: scale(0.97); }
+      .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+      .btn-ghost {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.1);
+        color: rgba(255,255,255,0.5);
+        transition: background 0.15s, border-color 0.15s, color 0.15s;
+      }
+      .btn-ghost:hover { background: rgba(255,255,255,0.09); border-color: rgba(255,255,255,0.18); color: rgba(255,255,255,0.8); }
+
+      /* ─── Title gradient ────────────────────────────────────────────── */
+      .title-gradient {
+        background: linear-gradient(135deg, #fff 0%, var(--title-end) 100%);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      /* ─── Chips ─────────────────────────────────────────────────────── */
+      .chip {
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.08);
+        color: rgba(255,255,255,0.42); font-size: 0.72rem;
+        transition: background 0.15s, border-color 0.15s, color 0.15s; cursor: pointer;
+      }
+      .chip:hover { background: var(--chip-bg); border-color: var(--chip-border); color: rgba(255,255,255,0.8); }
+
+      /* ─── Animations ────────────────────────────────────────────────── */
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      .fade-in-up { animation: fadeInUp 0.4s ease both; }
+
+      @keyframes pulseDot {
+        0%, 80%, 100% { opacity: 0.2; transform: scale(0.75); }
+        40%            { opacity: 1;   transform: scale(1); }
+      }
+      .dot { animation: pulseDot 1.3s infinite ease-in-out; }
+      .dot:nth-child(2) { animation-delay: 0.18s; }
+      .dot:nth-child(3) { animation-delay: 0.36s; }
+
+      #contextChevron { transition: transform 0.2s ease; }
+      #contextChevron.open { transform: rotate(90deg); }
+
+      /* ─── Result prose ──────────────────────────────────────────────── */
+      #result h1, #result h2, #result h3 { color: #ead5ff; font-weight: 600; margin-top: 1.25em; margin-bottom: 0.4em; }
+      #result h1 { font-size: 1.15rem; }
+      #result h2 { font-size: 1rem; }
+      #result h3 { font-size: 0.9rem; }
+      #result p  { color: #c4b5d4; line-height: 1.78; margin-bottom: 0.75em; }
+      #result strong { color: #e8d5ff; font-weight: 600; }
+      #result em     { color: #d4c4ea; font-style: italic; }
+      #result code {
+        background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+        padding: 1px 6px; border-radius: 5px; font-size: 0.82em; color: #e0d0ff;
+        font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      }
+      #result pre {
+        background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 10px; padding: 1rem; overflow-x: auto; margin-bottom: 1em;
+      }
+      #result pre code { background: none; border: none; padding: 0; font-size: 0.8rem; color: #c4b5d4; }
+      #result ul, #result ol { color: #c4b5d4; padding-left: 1.4em; margin-bottom: 0.75em; }
+      #result li { margin-bottom: 0.3em; }
+      #result blockquote {
+        border-left: 2px solid rgba(255,255,255,0.15);
+        padding-left: 1rem; color: #9a8aaa; margin: 0.75em 0; font-style: italic;
+      }
+      #result hr { border-color: rgba(255,255,255,0.07); margin: 1em 0; }
+      #result a  { color: rgba(255,255,255,0.7); text-decoration: underline; text-underline-offset: 2px; }
+
+      /* Result image banner */
+      #resultImage {
+        width: 100%; height: 200px; object-fit: cover; display: block;
+        border-bottom: 1px solid rgba(255,255,255,0.07);
+        animation: fadeInUp 0.5s ease both;
+      }
+
+      /* ─── Copy toast ────────────────────────────────────────────────── */
+      #copyToast {
+        position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+        background: rgba(20,12,36,0.92); border: 1px solid rgba(255,255,255,0.12);
+        backdrop-filter: blur(12px); color: rgba(255,255,255,0.7);
+        padding: 0.45rem 1rem; border-radius: 999px; font-size: 0.78rem;
+        opacity: 0; pointer-events: none; transition: opacity 0.25s; z-index: 10000;
+      }
+      #copyToast.show { opacity: 1; }
+
+      /* ─── Customize trigger ─────────────────────────────────────────── */
+      #customizeBtn {
+        position: fixed; bottom: 1.5rem; right: 1.5rem;
+        width: 40px; height: 40px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; z-index: 500;
+        transition: background 0.15s, box-shadow 0.2s, transform 0.1s;
+      }
+      #customizeBtn:hover { background: rgba(255,255,255,0.1); box-shadow: 0 0 18px var(--btn-glow); }
+      #customizeBtn:active { transform: scale(0.94); }
+      #customizeBtn.panel-open { background: rgba(255,255,255,0.1); }
+
+      /* ─── Customize panel ───────────────────────────────────────────── */
+      #customizePanel {
+        position: fixed; bottom: 5.5rem; right: 1.5rem;
+        width: 276px; z-index: 500;
+        opacity: 0; transform: translateY(8px) scale(0.98);
+        pointer-events: none;
+        transition: opacity 0.22s ease, transform 0.22s ease;
+      }
+      #customizePanel.open {
+        opacity: 1; transform: translateY(0) scale(1); pointer-events: auto;
+      }
+
+      /* Color swatches */
+      .swatch {
+        width: 26px; height: 26px; border-radius: 50%;
+        cursor: pointer; flex-shrink: 0;
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15);
+        transition: transform 0.15s, box-shadow 0.15s;
+        position: relative;
+      }
+      .swatch:hover { transform: scale(1.15); }
+      .swatch.active {
+        box-shadow: 0 0 0 2px #000, 0 0 0 4px rgba(255,255,255,0.8),
+                    inset 0 0 0 1px rgba(255,255,255,0.15);
+      }
+
+      /* Theme name hover label */
+      #themeLabel {
+        font-size: 0.7rem; color: rgba(255,255,255,0.4);
+        height: 1rem; transition: opacity 0.15s;
+        letter-spacing: 0.03em;
+      }
+
+      /* Animation option cards */
+      .anim-card {
+        border-radius: 10px; height: 62px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.07);
+        cursor: pointer; overflow: hidden; position: relative;
+        transition: border-color 0.15s, background 0.15s;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: flex-end;
+        padding-bottom: 8px;
+      }
+      .anim-card:hover:not(.soon) { border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.07); }
+      .anim-card.active { border-color: rgba(255,255,255,0.35); background: rgba(255,255,255,0.08); }
+      .anim-card.soon { cursor: default; opacity: 0.45; }
+      .anim-card .anim-label {
+        font-size: 0.65rem; color: rgba(255,255,255,0.55);
+        letter-spacing: 0.04em; font-weight: 500; position: relative; z-index: 1;
+      }
+      .anim-card .soon-badge {
+        position: absolute; top: 5px; right: 5px;
+        font-size: 0.5rem; color: rgba(255,255,255,0.3);
+        background: rgba(255,255,255,0.06); border-radius: 4px;
+        padding: 1px 4px; letter-spacing: 0.06em; font-weight: 600; text-transform: uppercase;
+      }
+
+      /* Mini previews inside animation cards */
+      .preview-orbit {
+        position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      }
+      .preview-orbit::before {
+        content: "";
+        width: 28px; height: 28px; border-radius: 50%;
+        border: 1px dashed rgba(255,255,255,0.18);
+        position: absolute;
+      }
+      .preview-orbit::after {
+        content: "";
+        width: 8px; height: 8px; border-radius: 50%;
+        background: radial-gradient(circle, var(--btn-from), var(--btn-to));
+        box-shadow: 0 0 6px var(--btn-glow);
+        position: absolute;
+        animation: miniOrbit 3s linear infinite;
+        transform-origin: center;
+        top: calc(50% - 14px); left: 50%; margin-left: -4px;
+      }
+      @keyframes miniOrbit {
+        from { transform: rotate(0deg)   translateY(14px) rotate(0deg); }
+        to   { transform: rotate(360deg) translateY(14px) rotate(-360deg); }
+      }
+
+      .preview-pulse {
+        position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      }
+      .preview-pulse::after {
+        content: "";
+        width: 14px; height: 14px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(255,255,255,0.4), transparent 70%);
+        box-shadow: 0 0 0 6px rgba(255,255,255,0.06), 0 0 0 12px rgba(255,255,255,0.03);
+      }
+
+      .preview-aurora {
+        position: absolute; inset: 0;
+        background: linear-gradient(160deg,
+          transparent 20%, rgba(255,255,255,0.06) 40%,
+          rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.06) 60%, transparent 80%);
+      }
+
+      .preview-static {
+        position: absolute; inset: 0;
+        background: radial-gradient(ellipse 80% 80% at 0% 0%, rgba(255,255,255,0.12) 0%, transparent 70%);
+      }
+
+      /* Panel section label */
+      .panel-section-label {
+        font-size: 0.6rem; font-weight: 600; letter-spacing: 0.1em;
+        text-transform: uppercase; color: rgba(255,255,255,0.25);
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+  <body class="text-white min-h-screen px-4 py-20 pb-32">
+
+    <!-- Orbiting glow orb -->
+    <div class="orb"></div>
+
+    <!-- Page content (above orb) -->
+    <div class="relative z-10 flex flex-col items-center justify-start">
+
+      <!-- Header -->
+      <div class="mb-12 text-center fade-in-up" style="animation-delay:0s">
+        <h1 class="text-5xl font-bold tracking-tight title-gradient mb-3">Clarity</h1>
+        <p class="text-white/35 text-sm font-light tracking-wide">Any topic. Understood in 60 seconds.</p>
+      </div>
+
+      <!-- Input card -->
+      <div class="w-full max-w-xl fade-in-up" style="animation-delay:0.08s">
+        <div class="glass rounded-2xl p-4 space-y-3">
+
+          <!-- Main input row -->
+          <div class="flex gap-2">
+            <input
+              id="topicInput"
+              type="text"
+              placeholder="Enter a topic…"
+              class="glass-input flex-1 rounded-xl px-4 py-3 text-sm font-light"
+            />
+            <button id="analyzeBtn" onclick="analyze()" class="btn-primary px-5 py-3 rounded-xl text-sm">
+              Go
+            </button>
+          </div>
+
+          <!-- Example chips -->
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs text-white/20 font-light">Try:</span>
+            <button class="chip px-3 py-1 rounded-full" onclick="setTopic('Quantum entanglement')">Quantum entanglement</button>
+            <button class="chip px-3 py-1 rounded-full" onclick="setTopic('How black holes form')">Black holes</button>
+            <button class="chip px-3 py-1 rounded-full" onclick="setTopic('CRISPR gene editing')">CRISPR</button>
+            <button class="chip px-3 py-1 rounded-full" onclick="setTopic('The Fermi paradox')">Fermi paradox</button>
+            <button class="chip px-3 py-1 rounded-full" onclick="setTopic('How neural networks learn')">Neural networks</button>
+          </div>
+
+          <!-- Divider -->
+          <div class="border-t border-white/[0.06]"></div>
+
+          <!-- Context toggle -->
+          <button id="contextToggle" onclick="toggleContext()" class="flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 transition">
+            <svg id="contextChevron" xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/>
+            </svg>
+            Add context or file
+          </button>
+
+          <!-- Context panel -->
+          <div id="contextPanel" class="hidden space-y-2.5">
+            <textarea
+              id="contextInput"
+              placeholder="Add context, a focus area, or anything to narrow the topic…"
+              rows="3"
+              class="glass-input w-full rounded-xl px-4 py-3 text-sm font-light resize-none"
+            ></textarea>
+            <label class="flex items-center gap-2 cursor-pointer text-xs text-white/30 hover:text-white/60 transition w-fit">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828L18 9.828A4 4 0 1012.172 4L5.586 10.586a6 6 0 108.485 8.485L20 13"/>
+              </svg>
+              <span id="fileLabel">Attach a PDF or image</span>
+              <input id="fileInput" type="file" accept=".pdf,image/*" class="hidden" onchange="updateFileLabel()" />
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Output -->
+      <div id="output" class="w-full max-w-xl mt-5 hidden">
+        <div id="loading" class="hidden flex items-center gap-3 px-1 py-6">
+          <div class="flex gap-1.5">
+            <div class="dot w-1.5 h-1.5 rounded-full bg-white/50"></div>
+            <div class="dot w-1.5 h-1.5 rounded-full bg-white/50"></div>
+            <div class="dot w-1.5 h-1.5 rounded-full bg-white/50"></div>
+          </div>
+          <span id="loadingText" class="text-white/35 text-xs tracking-wide"></span>
+        </div>
+        <div id="resultCard" class="glass rounded-2xl hidden">
+          <div class="flex items-center justify-between px-5 py-3 border-b border-white/[0.06]">
+            <span id="resultTopic" class="text-xs text-white/35 font-light truncate max-w-xs"></span>
+            <div class="flex items-center gap-2 shrink-0">
+              <span id="readTime" class="text-xs text-white/25"></span>
+              <button onclick="copyResult()" class="btn-ghost text-xs px-3 py-1 rounded-lg flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+                Copy
+              </button>
+              <button onclick="resetUI()" class="btn-ghost text-xs px-3 py-1 rounded-lg">New</button>
+            </div>
+          </div>
+          <img id="resultImage" class="hidden" alt="" />
+        <div id="result" class="px-5 py-5 text-sm leading-relaxed"></div>
+        </div>
+      </div>
+
+    </div><!-- end content wrapper -->
+
+    <!-- ─── Customize trigger ──────────────────────────────────────── -->
+    <button class="glass" id="customizeBtn" onclick="togglePanel()" title="Customize">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
+      </svg>
+    </button>
+
+    <!-- ─── Customize panel ────────────────────────────────────────── -->
+    <div id="customizePanel" class="glass rounded-2xl overflow-hidden">
+      <!-- Panel header -->
+      <div class="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+        <span class="text-xs font-medium text-white/50 tracking-wide">Customize</span>
+        <button onclick="closePanel()" class="text-white/25 hover:text-white/60 transition">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-4 space-y-5">
+        <!-- Color section -->
+        <div>
+          <div class="panel-section-label">Accent color</div>
+          <div id="swatchContainer" class="grid gap-2 mb-2" style="grid-template-columns: repeat(5, 26px)"></div>
+          <div id="themeLabel">Violet</div>
+        </div>
+
+        <div class="border-t border-white/[0.06]"></div>
+
+        <!-- Animation section -->
+        <div>
+          <div class="panel-section-label">Background</div>
+          <div id="animContainer" class="grid grid-cols-4 gap-2"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Copy toast -->
+    <div id="copyToast">Copied to clipboard</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+      /* ── Theme definitions ───────────────────────────────────────────── */
+      const THEMES = {
+        violet:  { name: 'Violet',  s: ['#b060ff','#5c48d1'], '--orb-c1':'rgba(176,96,255,0.95)',  '--orb-c2':'rgba(112,72,210,0.65)',  '--orb-c3':'rgba(44,18,96,0.25)',    '--orb-hi':'rgba(200,168,255,0.5)',  '--btn-from':'#b060ff', '--btn-to':'#5c48d1', '--btn-glow':'rgba(176,96,255,0.45)',  '--focus-border':'rgba(176,96,255,0.55)',  '--focus-ring':'rgba(176,96,255,0.12)',  '--chip-bg':'rgba(176,96,255,0.18)',  '--chip-border':'rgba(176,96,255,0.38)',  '--title-end':'#c49dff' },
+        azure:   { name: 'Azure',   s: ['#3d8bff','#1a4fc8'], '--orb-c1':'rgba(61,139,255,0.95)',  '--orb-c2':'rgba(36,90,200,0.65)',   '--orb-c3':'rgba(8,22,80,0.25)',     '--orb-hi':'rgba(148,192,255,0.5)', '--btn-from':'#3d8bff', '--btn-to':'#1a4fc8', '--btn-glow':'rgba(61,139,255,0.45)',  '--focus-border':'rgba(61,139,255,0.55)',  '--focus-ring':'rgba(61,139,255,0.12)',  '--chip-bg':'rgba(61,139,255,0.18)',  '--chip-border':'rgba(61,139,255,0.38)',  '--title-end':'#9dc4ff' },
+        cyan:    { name: 'Cyan',    s: ['#00c8ff','#0068b8'], '--orb-c1':'rgba(0,200,255,0.9)',    '--orb-c2':'rgba(0,108,200,0.65)',   '--orb-c3':'rgba(0,28,72,0.25)',     '--orb-hi':'rgba(128,230,255,0.5)', '--btn-from':'#00c8ff', '--btn-to':'#0068b8', '--btn-glow':'rgba(0,200,255,0.4)',    '--focus-border':'rgba(0,200,255,0.55)',   '--focus-ring':'rgba(0,200,255,0.12)',   '--chip-bg':'rgba(0,200,255,0.15)',   '--chip-border':'rgba(0,200,255,0.35)',   '--title-end':'#9deeff' },
+        emerald: { name: 'Emerald', s: ['#00d98a','#008855'], '--orb-c1':'rgba(0,217,138,0.9)',    '--orb-c2':'rgba(0,138,90,0.65)',    '--orb-c3':'rgba(0,44,28,0.25)',     '--orb-hi':'rgba(128,255,200,0.5)', '--btn-from':'#00d98a', '--btn-to':'#008855', '--btn-glow':'rgba(0,217,138,0.4)',    '--focus-border':'rgba(0,217,138,0.55)',   '--focus-ring':'rgba(0,217,138,0.12)',   '--chip-bg':'rgba(0,217,138,0.15)',   '--chip-border':'rgba(0,217,138,0.35)',   '--title-end':'#9dffcc' },
+        rose:    { name: 'Rose',    s: ['#ff4488','#c81855'], '--orb-c1':'rgba(255,68,136,0.95)', '--orb-c2':'rgba(200,24,85,0.65)',   '--orb-c3':'rgba(80,8,32,0.25)',     '--orb-hi':'rgba(255,168,200,0.5)', '--btn-from':'#ff4488', '--btn-to':'#c81855', '--btn-glow':'rgba(255,68,136,0.45)', '--focus-border':'rgba(255,68,136,0.55)', '--focus-ring':'rgba(255,68,136,0.12)', '--chip-bg':'rgba(255,68,136,0.18)', '--chip-border':'rgba(255,68,136,0.38)', '--title-end':'#ff9dcc' },
+        amber:   { name: 'Amber',   s: ['#ffaa00','#c86800'], '--orb-c1':'rgba(255,170,0,0.9)',   '--orb-c2':'rgba(200,104,0,0.65)',   '--orb-c3':'rgba(72,32,0,0.25)',     '--orb-hi':'rgba(255,220,128,0.5)', '--btn-from':'#ffaa00', '--btn-to':'#c86800', '--btn-glow':'rgba(255,170,0,0.4)',    '--focus-border':'rgba(255,170,0,0.55)',   '--focus-ring':'rgba(255,170,0,0.12)',   '--chip-bg':'rgba(255,170,0,0.15)',   '--chip-border':'rgba(255,170,0,0.35)',   '--title-end':'#ffd98d' },
+        crimson: { name: 'Crimson', s: ['#ff2850','#a81025'], '--orb-c1':'rgba(255,40,80,0.95)',  '--orb-c2':'rgba(168,16,37,0.65)',   '--orb-c3':'rgba(68,6,14,0.25)',     '--orb-hi':'rgba(255,148,168,0.5)', '--btn-from':'#ff2850', '--btn-to':'#a81025', '--btn-glow':'rgba(255,40,80,0.45)',   '--focus-border':'rgba(255,40,80,0.55)',   '--focus-ring':'rgba(255,40,80,0.12)',   '--chip-bg':'rgba(255,40,80,0.18)',   '--chip-border':'rgba(255,40,80,0.38)',   '--title-end':'#ff9dad' },
+        indigo:  { name: 'Indigo',  s: ['#5868ff','#2838c8'], '--orb-c1':'rgba(88,104,255,0.95)', '--orb-c2':'rgba(40,56,200,0.65)',   '--orb-c3':'rgba(12,16,72,0.25)',    '--orb-hi':'rgba(168,176,255,0.5)', '--btn-from':'#5868ff', '--btn-to':'#2838c8', '--btn-glow':'rgba(88,104,255,0.45)', '--focus-border':'rgba(88,104,255,0.55)', '--focus-ring':'rgba(88,104,255,0.12)', '--chip-bg':'rgba(88,104,255,0.18)', '--chip-border':'rgba(88,104,255,0.38)', '--title-end':'#b4bcff' },
+        teal:    { name: 'Teal',    s: ['#00c0b8','#007870'], '--orb-c1':'rgba(0,192,184,0.9)',   '--orb-c2':'rgba(0,120,112,0.65)',   '--orb-c3':'rgba(0,36,34,0.25)',     '--orb-hi':'rgba(128,240,236,0.5)', '--btn-from':'#00c0b8', '--btn-to':'#007870', '--btn-glow':'rgba(0,192,184,0.4)',    '--focus-border':'rgba(0,192,184,0.55)',   '--focus-ring':'rgba(0,192,184,0.12)',   '--chip-bg':'rgba(0,192,184,0.15)',   '--chip-border':'rgba(0,192,184,0.35)',   '--title-end':'#9deeec' },
+        gold:    { name: 'Gold',    s: ['#ffcc00','#c88800'], '--orb-c1':'rgba(255,204,0,0.9)',   '--orb-c2':'rgba(200,136,0,0.65)',   '--orb-c3':'rgba(72,48,0,0.25)',     '--orb-hi':'rgba(255,232,128,0.5)', '--btn-from':'#ffcc00', '--btn-to':'#c88800', '--btn-glow':'rgba(255,204,0,0.4)',    '--focus-border':'rgba(255,204,0,0.55)',   '--focus-ring':'rgba(255,204,0,0.12)',   '--chip-bg':'rgba(255,204,0,0.15)',   '--chip-border':'rgba(255,204,0,0.35)',   '--title-end':'#ffe980' },
+      };
+
+      /* ── Animation definitions ───────────────────────────────────────── */
+      const ANIMS = [
+        { id: 'orbit',  name: 'Orbit',  previewClass: 'preview-orbit'  },
+        { id: 'pulse',  name: 'Pulse',  previewClass: 'preview-pulse'  },
+        { id: 'aurora', name: 'Aurora', previewClass: 'preview-aurora' },
+        { id: 'static', name: 'Static', previewClass: 'preview-static' },
+      ];
+
+      /* ── State ───────────────────────────────────────────────────────── */
+      let currentTheme = localStorage.getItem('clarity-theme') || 'violet';
+      let currentAnim  = localStorage.getItem('clarity-anim')  || 'orbit';
+      let panelOpen    = false;
+      let lastMarkdown = "";
+      let loadingInterval = null;
+
+      const LOADING_PHRASES = [
+        'Pontificating…',
+        'Clarifying…',
+        'Researching…',
+        'Distilling…',
+        'Untangling…',
+        'Synthesizing…',
+      ];
+
+      function startLoadingPhrases() {
+        const el = document.getElementById('loadingText');
+        let i = 0;
+        el.textContent = LOADING_PHRASES[0];
+        loadingInterval = setInterval(() => {
+          i = (i + 1) % LOADING_PHRASES.length;
+          el.textContent = LOADING_PHRASES[i];
+        }, 2000);
+      }
+
+      function stopLoadingPhrases() {
+        clearInterval(loadingInterval);
+        loadingInterval = null;
+      }
+
+      const root = document.documentElement;
+
+      /* ── Apply theme ─────────────────────────────────────────────────── */
+      function applyTheme(id) {
+        const t = THEMES[id];
+        if (!t) return;
+        Object.keys(t).forEach(k => { if (k.startsWith('--')) root.style.setProperty(k, t[k]); });
+        currentTheme = id;
+        localStorage.setItem('clarity-theme', id);
+        // Update active swatch
+        document.querySelectorAll('.swatch').forEach(el => {
+          el.classList.toggle('active', el.dataset.id === id);
+        });
+        document.getElementById('themeLabel').textContent = t.name;
+      }
+
+      /* ── Render swatches ─────────────────────────────────────────────── */
+      function renderSwatches() {
+        const container = document.getElementById('swatchContainer');
+        const label     = document.getElementById('themeLabel');
+        Object.entries(THEMES).forEach(([id, t]) => {
+          const btn = document.createElement('button');
+          btn.className = 'swatch' + (id === currentTheme ? ' active' : '');
+          btn.dataset.id = id;
+          btn.title = t.name;
+          btn.style.background = `linear-gradient(135deg, ${t.s[0]}, ${t.s[1]})`;
+          btn.addEventListener('click', () => applyTheme(id));
+          btn.addEventListener('mouseenter', () => { label.textContent = t.name; });
+          btn.addEventListener('mouseleave', () => { label.textContent = THEMES[currentTheme].name; });
+          container.appendChild(btn);
+        });
+      }
+
+      /* ── Render animation cards ──────────────────────────────────────── */
+      function renderAnimCards() {
+        const container = document.getElementById('animContainer');
+        ANIMS.forEach(a => {
+          const card = document.createElement('div');
+          card.className = 'anim-card' + (a.id === currentAnim ? ' active' : '');
+          card.innerHTML = `
+            <div class="${a.previewClass}"></div>
+            <span class="anim-label">${a.name}</span>
+          `;
+          card.addEventListener('click', () => selectAnim(a.id));
+          container.appendChild(card);
+        });
+      }
+
+      function selectAnim(id) {
+        const orb = document.querySelector('.orb');
+
+        // Clear all inline overrides so CSS defaults (orbit) can resume
+        ['top','left','width','height','transform','borderRadius','animation','filter'].forEach(p => {
+          orb.style[p] = '';
+        });
+
+        switch (id) {
+          case 'orbit':
+            // CSS rule handles everything — orbitPage animation, 75vmax, top/left 0
+            break;
+
+          case 'pulse':
+            // top/left default to 50%/50% from CSS — just swap the animation
+            orb.style.animation = 'pulseAnim 5s ease-in-out infinite';
+            break;
+
+          case 'aurora':
+            // Wide flat band that drifts and undulates horizontally
+            orb.style.top          = '22%';
+            orb.style.left         = '-15%';
+            orb.style.width        = '130vw';
+            orb.style.height       = '28vh';
+            orb.style.transform    = 'none';
+            orb.style.borderRadius = '50%';
+            orb.style.filter       = 'blur(55px)';
+            orb.style.animation    = 'auroraAnim 12s ease-in-out infinite';
+            break;
+
+          case 'static':
+            // Corner glow — override center defaults, stop animation
+            orb.style.top       = '0';
+            orb.style.left      = '0';
+            orb.style.transform = 'translate(-50%, -50%)';
+            orb.style.animation = 'none';
+            break;
+        }
+
+        currentAnim = id;
+        localStorage.setItem('clarity-anim', id);
+        document.querySelectorAll('.anim-card').forEach((el, i) => {
+          el.classList.toggle('active', ANIMS[i].id === id);
+        });
+      }
+
+      /* ── Panel toggle ────────────────────────────────────────────────── */
+      function togglePanel() {
+        panelOpen ? closePanel() : openPanel();
+      }
+      function openPanel() {
+        panelOpen = true;
+        document.getElementById('customizePanel').classList.add('open');
+        document.getElementById('customizeBtn').classList.add('panel-open');
+      }
+      function closePanel() {
+        panelOpen = false;
+        document.getElementById('customizePanel').classList.remove('open');
+        document.getElementById('customizeBtn').classList.remove('panel-open');
+      }
+
+      // Close on outside click
+      document.addEventListener('click', e => {
+        if (panelOpen && !e.target.closest('#customizePanel') && !e.target.closest('#customizeBtn')) {
+          closePanel();
+        }
+      });
+      // Close on Escape
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
+
+      /* ── Main app ────────────────────────────────────────────────────── */
+      const topicInput     = document.getElementById('topicInput');
+      const contextInput   = document.getElementById('contextInput');
+      const fileInput      = document.getElementById('fileInput');
+      const fileLabel      = document.getElementById('fileLabel');
+      const contextPanel   = document.getElementById('contextPanel');
+      const contextChevron = document.getElementById('contextChevron');
+      const output         = document.getElementById('output');
+      const loading        = document.getElementById('loading');
+      const resultCard     = document.getElementById('resultCard');
+      const result         = document.getElementById('result');
+      const resultTopic    = document.getElementById('resultTopic');
+      const resultImage    = document.getElementById('resultImage');
+      const readTime       = document.getElementById('readTime');
+      const btn            = document.getElementById('analyzeBtn');
+      const copyToast      = document.getElementById('copyToast');
+
+      topicInput.addEventListener('keydown', e => { if (e.key === 'Enter') analyze(); });
+
+      function setTopic(text) { topicInput.value = text; topicInput.focus(); }
+
+      function toggleContext() {
+        const hidden = contextPanel.classList.toggle('hidden');
+        contextChevron.classList.toggle('open', !hidden);
+      }
+
+      function updateFileLabel() {
+        fileLabel.textContent = fileInput.files[0] ? fileInput.files[0].name : 'Attach a PDF or image';
+      }
+
+      function resetUI() {
+        output.classList.add('hidden');
+        resultCard.classList.add('hidden');
+        result.innerHTML = '';
+        resultImage.classList.add('hidden');
+        resultImage.src = '';
+        lastMarkdown = '';
+        topicInput.value = '';
+        topicInput.focus();
+      }
+
+      function copyResult() {
+        if (!lastMarkdown) return;
+        navigator.clipboard.writeText(lastMarkdown).then(() => {
+          copyToast.classList.add('show');
+          setTimeout(() => copyToast.classList.remove('show'), 2000);
+        });
+      }
+
+      function estimateReadTime(text) {
+        const mins = Math.max(1, Math.round(text.trim().split(/\s+/).length / 200));
+        return mins === 1 ? '~1 min read' : `~${mins} min read`;
+      }
+
+      async function analyze() {
+        const topic = topicInput.value.trim();
+        if (!topic) return;
+
+        output.classList.remove('hidden');
+        loading.classList.remove('hidden');
+        resultCard.classList.add('hidden');
+        result.innerHTML = '';
+        lastMarkdown = '';
+        btn.disabled = true;
+        btn.textContent = '…';
+        startLoadingPhrases();
+
+        try {
+          const formData = new FormData();
+          formData.append('topic', topic);
+          const ctx = contextInput.value.trim();
+          if (ctx) formData.append('context', ctx);
+          if (fileInput.files[0]) formData.append('file', fileInput.files[0]);
+
+          const data = await fetch('/analyze', { method: 'POST', body: formData }).then(r => r.json());
+
+          loading.classList.add('hidden');
+          resultCard.classList.remove('hidden');
+          resultCard.classList.add('fade-in-up');
+
+          if (data.error) {
+            resultImage.classList.add('hidden');
+            result.innerHTML = `<p style="color:rgba(248,113,113,0.8);font-size:0.85rem">${data.error}</p>`;
+          } else {
+            lastMarkdown = data.result;
+            result.innerHTML = marked.parse(data.result);
+            resultTopic.textContent = topic;
+            readTime.textContent = estimateReadTime(data.result);
+            if (data.image) {
+              resultImage.src = data.image;
+              resultImage.classList.remove('hidden');
+            } else {
+              resultImage.classList.add('hidden');
+            }
+          }
+        } catch {
+          loading.classList.add('hidden');
+          resultCard.classList.remove('hidden');
+          result.innerHTML = `<p style="color:rgba(248,113,113,0.7);font-size:0.85rem">Something went wrong. Is the server running?</p>`;
+        } finally {
+          stopLoadingPhrases();
+          btn.disabled = false;
+          btn.textContent = 'Go';
+        }
+      }
+
+      /* ── Init ────────────────────────────────────────────────────────── */
+      applyTheme(currentTheme);
+      renderSwatches();
+      renderAnimCards();
+      selectAnim(currentAnim);
+    </script>
+  </body>
+</html>
