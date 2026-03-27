@@ -8,7 +8,7 @@
     <!-- Open Graph / link preview -->
     <meta property="og:title" content="Clarity" />
     <meta property="og:description" content="Any topic. Understood in 60 seconds." />
-    <meta property="og:image" content="https://ineedclarity.net/clarity2.png" />
+    <meta property="og:image" content="https://ineedclarity.net/clarity3.png" />
     <meta property="og:url" content="https://ineedclarity.net/" />
     <meta property="og:type" content="website" />
 
@@ -16,7 +16,7 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Clarity" />
     <meta name="twitter:description" content="Any topic. Understood in 60 seconds." />
-    <meta name="twitter:image" content="https://ineedclarity.net/clarity2.png" />
+    <meta name="twitter:image" content="https://ineedclarity.net/clarity3.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet" />
@@ -1333,15 +1333,29 @@
       }
 
       /* ── History ─────────────────────────────────────────────────────── */
-      function getHistory() {
+      function getLocalHistory() {
         try { return JSON.parse(localStorage.getItem('clarity-history') || '[]'); }
         catch { return []; }
       }
 
-      function saveToHistory(topic, preview) {
-        const hist = getHistory().filter(h => h.topic.toLowerCase() !== topic.toLowerCase());
-        hist.unshift({ topic, preview: preview.slice(0, 80), ts: Date.now() });
-        localStorage.setItem('clarity-history', JSON.stringify(hist.slice(0, 20)));
+      async function saveToHistory(topic, preview) {
+        const { data: { session } } = await _supa.auth.getSession();
+        const clean = preview.slice(0, 80);
+
+        if (session?.user) {
+          // Remove any existing entry for this topic, then insert fresh
+          await _supa.from('search_history')
+            .delete()
+            .eq('user_id', session.user.id)
+            .ilike('topic', topic);
+          await _supa.from('search_history')
+            .insert({ user_id: session.user.id, topic, preview: clean });
+        } else {
+          // Fall back to localStorage when signed out
+          const hist = getLocalHistory().filter(h => h.topic.toLowerCase() !== topic.toLowerCase());
+          hist.unshift({ topic, preview: clean, ts: Date.now() });
+          localStorage.setItem('clarity-history', JSON.stringify(hist.slice(0, 20)));
+        }
       }
 
       function timeAgo(ts) {
@@ -1352,20 +1366,33 @@
         return Math.floor(s / 86400) + 'd ago';
       }
 
-      function renderHistory() {
+      function renderHistoryItems(items) {
         const list = document.getElementById('historyList');
-        const hist = getHistory();
-        if (!hist.length) {
+        if (!items.length) {
           list.innerHTML = '<div class="history-empty">Your recent topics<br>will appear here</div>';
           return;
         }
-        list.innerHTML = hist.map(h => `
+        list.innerHTML = items.map(h => `
           <div class="history-item" onclick="rerunTopic(${JSON.stringify(h.topic)})">
             <div style="flex:1;min-width:0">
               <div class="history-item-topic">${h.topic}</div>
-              <div class="history-item-time">${timeAgo(h.ts)}</div>
+              <div class="history-item-time">${timeAgo(h.ts ?? new Date(h.created_at).getTime())}</div>
             </div>
           </div>`).join('');
+      }
+
+      async function renderHistory() {
+        const { data: { session } } = await _supa.auth.getSession();
+        if (session?.user) {
+          const { data } = await _supa.from('search_history')
+            .select('topic, preview, created_at')
+            .eq('user_id', session.user.id)
+            .order('created_at', { ascending: false })
+            .limit(20);
+          renderHistoryItems(data ?? []);
+        } else {
+          renderHistoryItems(getLocalHistory());
+        }
       }
 
       function rerunTopic(topic) {
@@ -1376,12 +1403,12 @@
 
       /* ── Menu toggle ─────────────────────────────────────────────────── */
       function toggleMenu() { menuOpen ? closeMenu() : openMenu(); }
-      function openMenu() {
+      async function openMenu() {
         menuOpen = true;
-        renderHistory();
         document.getElementById('menuPanel').classList.add('open');
         document.getElementById('menuBackdrop').classList.add('open');
         document.getElementById('menuBtn').classList.add('open');
+        await renderHistory();
       }
       function closeMenu() {
         menuOpen = false;
