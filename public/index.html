@@ -243,6 +243,54 @@
       }
       .chip:hover { background: var(--chip-bg); border-color: var(--chip-border); color: rgba(255,255,255,0.8); }
 
+      /* ─── Splash screen ─────────────────────────────────────────────── */
+      #splashScreen {
+        position: fixed; inset: 0; z-index: 9999;
+        background: #000;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 0;
+        pointer-events: none;
+      }
+      #splashScreen.splash-out {
+        animation: splashFadeOut 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      }
+      @keyframes splashFadeOut {
+        from { opacity: 1; }
+        to   { opacity: 0; }
+      }
+      #splashLogo {
+        width: 72px; height: 72px; object-fit: contain;
+        opacity: 0;
+        animation: splashItemIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.15s forwards;
+        filter: drop-shadow(0 0 24px var(--btn-glow));
+      }
+      #splashTitle {
+        font-family: 'Space Grotesk', sans-serif; font-weight: 700;
+        font-size: 2.4rem; letter-spacing: -0.01em;
+        margin-top: 14px;
+        opacity: 0;
+        animation: splashItemIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.4s forwards;
+      }
+      #splashTagline {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: rgba(176,96,255,0.12); border: 1px solid rgba(176,96,255,0.28);
+        border-radius: 999px; padding: 4px 14px;
+        font-size: 0.72rem; color: rgba(255,255,255,0.5);
+        letter-spacing: 0.05em; font-weight: 500;
+        margin-top: 12px;
+        opacity: 0;
+        animation: splashItemIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.65s forwards;
+      }
+      #splashDot {
+        width: 6px; height: 6px; border-radius: 50%;
+        background: var(--btn-from); box-shadow: 0 0 6px var(--btn-glow);
+        flex-shrink: 0;
+      }
+      @keyframes splashItemIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+
       /* ─── Animations ────────────────────────────────────────────────── */
       @keyframes fadeInUp {
         from { opacity: 0; transform: translateY(10px); }
@@ -786,6 +834,16 @@
   </head>
   <body class="text-white min-h-screen px-4 py-20 pb-32">
 
+    <!-- ─── Splash screen ──────────────────────────────────────────────── -->
+    <div id="splashScreen">
+      <img id="splashLogo" src="/clarity3.png" alt="Clarity" />
+      <div id="splashTitle" class="title-gradient">Clarity</div>
+      <div id="splashTagline">
+        <span id="splashDot"></span>
+        Any topic. Understood in 60 seconds.
+      </div>
+    </div>
+
     <!-- Orbiting glow orb -->
     <div class="orb"></div>
     <!-- Eclipse shadow overlay -->
@@ -1097,6 +1155,17 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
+      /* ── Splash screen ───────────────────────────────────────────────── */
+      (function() {
+        const splash = document.getElementById('splashScreen');
+        setTimeout(() => {
+          splash.classList.add('splash-out');
+          splash.addEventListener('animationend', () => {
+            splash.style.display = 'none';
+          }, { once: true });
+        }, 1800);
+      })();
+
       /* ── Theme definitions ───────────────────────────────────────────── */
       const THEMES = {
         violet:  { name: 'Violet',  s: ['#b060ff','#5c48d1'], '--orb-c1':'rgba(176,96,255,0.95)',  '--orb-c2':'rgba(112,72,210,0.65)',  '--orb-c3':'rgba(44,18,96,0.25)',    '--orb-hi':'rgba(200,168,255,0.5)',  '--btn-from':'#b060ff', '--btn-to':'#5c48d1', '--btn-glow':'rgba(176,96,255,0.45)',  '--focus-border':'rgba(176,96,255,0.55)',  '--focus-ring':'rgba(176,96,255,0.12)',  '--chip-bg':'rgba(176,96,255,0.18)',  '--chip-border':'rgba(176,96,255,0.38)',  '--title-end':'#c49dff' },
