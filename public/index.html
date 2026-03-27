@@ -4,10 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
     <title>Clarity</title>
+    <meta name="description" content="Learn something new today with Clarity" />
 
     <!-- Open Graph / link preview -->
     <meta property="og:title" content="Clarity" />
-    <meta property="og:description" content="Any topic. Understood in 60 seconds." />
+    <meta property="og:description" content="Learn something new today with Clarity" />
     <meta property="og:image" content="https://ineedclarity.net/clarity3.png" />
     <meta property="og:url" content="https://ineedclarity.net/" />
     <meta property="og:type" content="website" />
@@ -15,11 +16,11 @@
     <!-- Twitter / X card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Clarity" />
-    <meta name="twitter:description" content="Any topic. Understood in 60 seconds." />
+    <meta name="twitter:description" content="Learn something new today with Clarity" />
     <meta name="twitter:image" content="https://ineedclarity.net/clarity3.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@700&family=Dancing+Script:wght@400;500&display=swap" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       /* ─── Accent tokens (overridden per theme) ─────────────────────── */
@@ -249,6 +250,18 @@
         background: #000;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         gap: 0;
+        pointer-events: none;
+      }
+      #splashOrb {
+        position: absolute;
+        width: 75vmax; height: 75vmax;
+        top: 50%; left: 50%;
+        border-radius: 50%;
+        background: radial-gradient(circle at 50% 50%,
+          var(--orb-c1) 0%, var(--orb-c2) 18%, var(--orb-c3) 42%, transparent 68%);
+        filter: blur(28px);
+        animation: eclipseOrb 38s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+        will-change: transform;
         pointer-events: none;
       }
       #splashScreen.splash-out {
@@ -818,6 +831,25 @@
         animation: miniCloudRoll linear infinite;
       }
 
+      /* Starry Night — small faint orb top-left, persistent star field */
+      @keyframes starryNightOrb {
+        0%, 100% { opacity: 0.12; transform: translate(-50%, -50%) scale(0.88); }
+        50%      { opacity: 0.20; transform: translate(-50%, -50%) scale(1.00); }
+      }
+
+      .preview-starrynight {
+        position: absolute; inset: 0; overflow: hidden;
+        background: #01020a;
+      }
+      .preview-starrynight::before {
+        content: "";
+        position: absolute; top: 8%; left: 8%;
+        width: 14px; height: 14px; border-radius: 50%;
+        background: radial-gradient(circle, var(--btn-from), var(--btn-to));
+        filter: blur(4px);
+        opacity: 0.35;
+      }
+
       /* Panel section label */
       .panel-section-label {
         font-size: 0.6rem; font-weight: 600; letter-spacing: 0.1em;
@@ -830,11 +862,8 @@
 
     <!-- ─── Splash screen ──────────────────────────────────────────────── -->
     <div id="splashScreen">
-      <div id="splashTitle" class="title-gradient">Clarity</div>
-      <div id="splashTagline">
-        <span id="splashDot"></span>
-        Any topic. Understood in 60 seconds.
-      </div>
+      <div id="splashOrb"></div>
+<div id="splashTitle" class="title-gradient">Clarity</div>
     </div>
 
     <!-- Orbiting glow orb -->
@@ -1179,8 +1208,9 @@
         { id: 'pulse',   name: 'Pulse',   previewClass: 'preview-pulse'   },
         { id: 'aurora',  name: 'Aurora',  previewClass: 'preview-aurora'  },
         { id: 'static',  name: 'Static',  previewClass: 'preview-static'  },
-        { id: 'eclipse', name: 'Eclipse', previewClass: 'preview-eclipse' },
-        { id: 'storm',   name: 'Storm',   previewClass: 'preview-storm', soon: true },
+        { id: 'eclipse',     name: 'Eclipse',      previewClass: 'preview-eclipse'     },
+        { id: 'starrynight', name: 'Starry Night', previewClass: 'preview-starrynight' },
+        { id: 'storm',       name: 'Storm',        previewClass: 'preview-storm', soon: true },
       ];
 
       /* ── Supabase ────────────────────────────────────────────────────── */
@@ -1333,8 +1363,11 @@
 
       /* ── Storm flash engine ──────────────────────────────────────────── */
       let stormTimeout   = null;
-      let starLoopId     = null;
-      let starData       = [];
+      let starLoopId          = null;
+      let starData            = [];
+      let shootingStars        = [];
+      let shootingStarTimeout  = null;
+      let shootingStarInterval = null;
 
       function triggerFlash() {
         const flash = document.getElementById('lightningFlash');
@@ -1391,16 +1424,67 @@
         const ctx = canvas.getContext('2d');
         ctx.scale(dpr, dpr); // all draw calls now use CSS pixel coords
 
+        // Star color palette: white, warm yellow, blue-white, red/orange, faint green
+        const starColors = [
+          [255, 255, 255],   // white
+          [255, 255, 255],   // white (weighted higher)
+          [255, 255, 255],   // white (weighted higher)
+          [255, 235,  90],   // warm yellow
+          [255, 200,  40],   // golden yellow
+          [130, 185, 255],   // blue-white
+          [ 80, 140, 255],   // blue
+          [255, 100,  60],   // red-orange
+          [255,  50,  40],   // red
+          [100, 255, 140],   // greenish
+        ];
+
         // Generate stars with independent twinkle params, positions in CSS px space
-        starData = Array.from({ length: 90 }, () => ({
+        starData = Array.from({ length: 90 }, () => {
+          const [r, g, b] = starColors[Math.floor(Math.random() * starColors.length)];
+          const persistent = Math.random() < 0.55;
+          return {
+            x:     Math.random() * w,
+            y:     Math.random() * h,
+            r:     Math.random() * 0.9 + 0.2,
+            base:  persistent ? Math.random() * 0.20 + 0.28 : Math.random() * 0.18 + 0.10,
+            amp:   persistent ? Math.random() * 0.04 + 0.01 : Math.random() * 0.18 + 0.08,
+            speed: persistent ? Math.random() * 0.4  + 0.1  : Math.random() * 1.2  + 0.4,
+            phase: Math.random() * Math.PI * 2,
+            cr: r, cg: g, cb: b,
+          };
+        }).concat(Array.from({ length: 12 }, () => ({
           x:     Math.random() * w,
           y:     Math.random() * h,
-          r:     Math.random() * 0.9 + 0.2,
-          base:  Math.random() * 0.28 + 0.15,
-          amp:   Math.random() * 0.22 + 0.10,
-          speed: Math.random() * 1.2 + 0.3,
+          r:     Math.random() * 0.5 + 0.1,
+          base:  Math.random() * 0.10 + 0.06,
+          amp:   Math.random() * 0.03 + 0.01,
+          speed: Math.random() * 0.3  + 0.1,
           phase: Math.random() * Math.PI * 2,
-        }));
+          cr: 255, cg: 255, cb: 255,
+        })));
+
+        shootingStars = [];
+
+        function spawnEclipseShootingStar() {
+          const angle  = (Math.random() * 18 + 18) * Math.PI / 180;
+          const tailLen = Math.random() * 60 + 90;
+          const startX  = Math.random() * w * 0.65 + w * 0.05;
+          const startY  = Math.random() * h * 0.30 + h * 0.04;
+          const distToEdge = Math.min((w - startX) / Math.cos(angle), (h - startY) / Math.sin(angle));
+          const totalDist  = distToEdge + tailLen;
+          const duration   = Math.random() * 0.13 + 0.15;
+          shootingStars.push({ startX, startY, angle, tailLen, totalDist, speed: totalDist / duration, born: null });
+        }
+
+        // ~1-in-3 chance per eclipse cycle, timed to totality (~18.5s in)
+        if (shootingStarTimeout)  { clearTimeout(shootingStarTimeout);   shootingStarTimeout  = null; }
+        if (shootingStarInterval) { clearInterval(shootingStarInterval); shootingStarInterval = null; }
+        shootingStarTimeout = setTimeout(() => {
+          if (Math.random() < 0.33) spawnEclipseShootingStar();
+          shootingStarInterval = setInterval(() => {
+            if (Math.random() < 0.33) spawnEclipseShootingStar();
+          }, 38000);
+        }, 18500);
 
         if (starLoopId) cancelAnimationFrame(starLoopId);
 
@@ -1411,9 +1495,46 @@
             const opacity = s.base + s.amp * Math.sin(t * s.speed * Math.PI * 2 + s.phase);
             ctx.beginPath();
             ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(255,255,255,${Math.max(0, opacity)})`;
+            ctx.fillStyle = `rgba(${s.cr},${s.cg},${s.cb},${Math.max(0, opacity)})`;
             ctx.fill();
           }
+
+          // Shooting star during totality
+          for (let i = shootingStars.length - 1; i >= 0; i--) {
+            const s = shootingStars[i];
+            if (s.born === null) s.born = t;
+            const dist = (t - s.born) * s.speed;
+            const progress = dist / s.totalDist;
+            if (progress >= 1) { shootingStars.splice(i, 1); continue; }
+
+            const alpha = progress > 0.7 ? (1 - progress) / 0.3 : 1;
+            const headX = s.startX + Math.cos(s.angle) * dist;
+            const headY = s.startY + Math.sin(s.angle) * dist;
+            const tailDist = Math.max(0, dist - s.tailLen);
+            const tailX = s.startX + Math.cos(s.angle) * tailDist;
+            const tailY = s.startY + Math.sin(s.angle) * tailDist;
+
+            const grad = ctx.createLinearGradient(tailX, tailY, headX, headY);
+            grad.addColorStop(0,   `rgba(180, 210, 255, 0)`);
+            grad.addColorStop(0.5, `rgba(210, 230, 255, ${0.18 * alpha})`);
+            grad.addColorStop(1,   `rgba(255, 255, 255, ${0.45 * alpha})`);
+            ctx.beginPath();
+            ctx.moveTo(tailX, tailY);
+            ctx.lineTo(headX, headY);
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            const glow = ctx.createRadialGradient(headX, headY, 0, headX, headY, 3);
+            glow.addColorStop(0,   `rgba(255, 255, 255, ${0.50 * alpha})`);
+            glow.addColorStop(0.4, `rgba(200, 225, 255, ${0.22 * alpha})`);
+            glow.addColorStop(1,   `rgba(180, 210, 255, 0)`);
+            ctx.beginPath();
+            ctx.arc(headX, headY, 3, 0, Math.PI * 2);
+            ctx.fillStyle = glow;
+            ctx.fill();
+          }
+
           starLoopId = requestAnimationFrame(drawStars);
         }
 
@@ -1422,9 +1543,148 @@
         canvas.style.animation = 'eclipseStarsFade 38s cubic-bezier(0.45, 0, 0.55, 1) infinite';
       }
 
-      // Reinitialize stars on orientation change / resize while eclipse is active
+      function initStarryNightStars() {
+        const canvas = document.getElementById('eclipseStars');
+        const dpr = window.devicePixelRatio || 1;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+
+        canvas.width  = w * dpr;
+        canvas.height = h * dpr;
+        canvas.style.width  = w + 'px';
+        canvas.style.height = h + 'px';
+
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+
+        const starColors = [
+          [255, 255, 255],
+          [255, 255, 255],
+          [255, 255, 255],
+          [255, 235,  90],
+          [255, 200,  40],
+          [130, 185, 255],
+          [ 80, 140, 255],
+          [255, 100,  60],
+          [255,  50,  40],
+          [100, 255, 140],
+        ];
+
+        starData = Array.from({ length: 220 }, () => {
+          const [r, g, b] = starColors[Math.floor(Math.random() * starColors.length)];
+          const persistent = Math.random() < 0.55;
+          return {
+            x:     Math.random() * w,
+            y:     Math.random() * h,
+            r:     Math.random() * 0.85 + 0.15,
+            base:  persistent ? Math.random() * 0.20 + 0.28 : Math.random() * 0.18 + 0.10,
+            amp:   persistent ? Math.random() * 0.04 + 0.01 : Math.random() * 0.18 + 0.08,
+            speed: persistent ? Math.random() * 0.4  + 0.1  : Math.random() * 1.2  + 0.4,
+            phase: Math.random() * Math.PI * 2,
+            cr: r, cg: g, cb: b,
+          };
+        }).concat(Array.from({ length: 18 }, () => ({
+          x:     Math.random() * w,
+          y:     Math.random() * h,
+          r:     Math.random() * 0.5 + 0.1,
+          base:  Math.random() * 0.10 + 0.06,
+          amp:   Math.random() * 0.03 + 0.01,
+          speed: Math.random() * 0.3  + 0.1,
+          phase: Math.random() * Math.PI * 2,
+          cr: 255, cg: 255, cb: 255,
+        })));
+
+        shootingStars = [];
+
+        function spawnShootingStar() {
+          const angle   = (Math.random() * 18 + 18) * Math.PI / 180;
+          const tailLen  = Math.random() * 60 + 90;
+          const startX   = Math.random() * w * 0.65 + w * 0.05;
+          const startY   = Math.random() * h * 0.30 + h * 0.04;
+          const distToEdge = Math.min((w - startX) / Math.cos(angle), (h - startY) / Math.sin(angle));
+          const totalDist  = distToEdge + tailLen;
+          const duration   = Math.random() * 0.13 + 0.15;
+          shootingStars.push({ startX, startY, angle, tailLen, totalDist, speed: totalDist / duration, born: null });
+          // 15% chance of a close second one
+          if (Math.random() < 0.15) {
+            setTimeout(spawnShootingStar, Math.random() * 1800 + 400);
+          }
+          // Schedule next
+          shootingStarTimeout = setTimeout(spawnShootingStar, Math.random() * 25000 + 20000);
+        }
+
+        // First one fires after 8-18s so it doesn't feel instant
+        if (shootingStarTimeout) clearTimeout(shootingStarTimeout);
+        shootingStarTimeout = setTimeout(spawnShootingStar, Math.random() * 10000 + 8000);
+
+        if (starLoopId) cancelAnimationFrame(starLoopId);
+
+        function drawStars(ts) {
+          const t = ts / 1000;
+          ctx.clearRect(0, 0, w, h);
+
+          // Background stars
+          for (const s of starData) {
+            const opacity = s.base + s.amp * Math.sin(t * s.speed * Math.PI * 2 + s.phase);
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${s.cr},${s.cg},${s.cb},${Math.max(0, opacity)})`;
+            ctx.fill();
+          }
+
+          // Shooting stars
+          for (let i = shootingStars.length - 1; i >= 0; i--) {
+            const s = shootingStars[i];
+            if (s.born === null) s.born = t;
+            const dist = (t - s.born) * s.speed;
+            const progress = dist / s.totalDist;
+            if (progress >= 1) { shootingStars.splice(i, 1); continue; }
+
+            // Fade out in final 30%
+            const alpha = progress > 0.7 ? (1 - progress) / 0.3 : 1;
+
+            const headX = s.startX + Math.cos(s.angle) * dist;
+            const headY = s.startY + Math.sin(s.angle) * dist;
+            const tailDist = Math.max(0, dist - s.tailLen);
+            const tailX = s.startX + Math.cos(s.angle) * tailDist;
+            const tailY = s.startY + Math.sin(s.angle) * tailDist;
+
+            // Comet tail — gradient from transparent to bright blue-white
+            const grad = ctx.createLinearGradient(tailX, tailY, headX, headY);
+            grad.addColorStop(0,   `rgba(180, 210, 255, 0)`);
+            grad.addColorStop(0.5, `rgba(210, 230, 255, ${0.18 * alpha})`);
+            grad.addColorStop(1,   `rgba(255, 255, 255, ${0.45 * alpha})`);
+            ctx.beginPath();
+            ctx.moveTo(tailX, tailY);
+            ctx.lineTo(headX, headY);
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Glowing nucleus at head
+            const glow = ctx.createRadialGradient(headX, headY, 0, headX, headY, 3);
+            glow.addColorStop(0,   `rgba(255, 255, 255, ${0.50 * alpha})`);
+            glow.addColorStop(0.4, `rgba(200, 225, 255, ${0.22 * alpha})`);
+            glow.addColorStop(1,   `rgba(180, 210, 255, 0)`);
+            ctx.beginPath();
+            ctx.arc(headX, headY, 3, 0, Math.PI * 2);
+            ctx.fillStyle = glow;
+            ctx.fill();
+          }
+
+          starLoopId = requestAnimationFrame(drawStars);
+        }
+
+        starLoopId = requestAnimationFrame(drawStars);
+        canvas.style.display = 'block';
+        canvas.style.animation = 'none';
+        canvas.style.opacity = '1';
+      }
+
+      // Reinitialize stars on orientation change / resize while eclipse/starrynight is active
       window.addEventListener('resize', () => {
         if (currentAnim === 'eclipse' && starLoopId) initEclipseStars();
+        if (currentAnim === 'starrynight' && starLoopId) initStarryNightStars();
       });
 
       function startStorm() {
@@ -1449,6 +1709,9 @@
         overlay.style.display = 'none';
         stopStorm();
         if (starLoopId) { cancelAnimationFrame(starLoopId); starLoopId = null; }
+        if (shootingStarTimeout)  { clearTimeout(shootingStarTimeout);   shootingStarTimeout  = null; }
+        if (shootingStarInterval) { clearInterval(shootingStarInterval); shootingStarInterval = null; }
+        shootingStars = [];
         document.getElementById('siteTitle').classList.remove('eclipse-title-fade');
         document.getElementById('siteTagline').classList.remove('eclipse-title-fade');
         const starsCanvas = document.getElementById('eclipseStars');
@@ -1491,6 +1754,16 @@
             initEclipseStars();
             document.getElementById('siteTitle').classList.add('eclipse-title-fade');
             document.getElementById('siteTagline').classList.add('eclipse-title-fade');
+            break;
+
+          case 'starrynight':
+            orb.style.top       = '10%';
+            orb.style.left      = '8%';
+            orb.style.width     = '14vmax';
+            orb.style.height    = '14vmax';
+            orb.style.animation = 'starryNightOrb 5s ease-in-out infinite';
+            orb.style.filter    = 'blur(18px)';
+            initStarryNightStars();
             break;
 
           case 'storm':
