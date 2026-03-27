@@ -196,6 +196,22 @@
       }
       .fade-in-up { animation: fadeInUp 0.4s ease both; }
 
+      /* ─── Loading sparkle (Claude-style rotating 4-pointed star) ──────── */
+      @keyframes sparkleRotate {
+        from { transform: rotate(0deg)   scale(1);    }
+        50%  { transform: rotate(180deg) scale(1.15); }
+        to   { transform: rotate(360deg) scale(1);    }
+      }
+      @keyframes sparklePulse {
+        0%, 100% { opacity: 0.7; }
+        50%      { opacity: 1;   }
+      }
+      .star-burst {
+        overflow: visible; flex-shrink: 0;
+        animation: sparkleRotate 2s linear infinite, sparklePulse 2s ease-in-out infinite;
+        transform-origin: center;
+      }
+
       @keyframes pulseDot {
         0%, 70%, 100% { transform: scale(0.75) translateY(0);   background-color: rgba(255,255,255,0.2); box-shadow: none; }
         35%            { transform: scale(1.1)  translateY(-4px); background-color: var(--btn-from);       box-shadow: 0 0 6px var(--btn-glow); }
@@ -263,6 +279,61 @@
       .reddit-post .rp-meta {
         font-size: 0.65rem; color: rgba(255,255,255,0.25);
         margin-top: 3px;
+      }
+
+      /* ─── Follow-up section ─────────────────────────────────────────── */
+      #followupSection {
+        border-top: 1px solid rgba(255,255,255,0.06);
+        padding: 14px 20px 16px;
+      }
+      .followup-label {
+        font-size: 0.6rem; font-weight: 600; letter-spacing: 0.1em;
+        text-transform: uppercase; color: rgba(255,255,255,0.22);
+        margin-bottom: 10px;
+      }
+      .followup-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+      .followup-chip {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+        color: rgba(255,255,255,0.5); font-size: 0.72rem;
+        padding: 5px 12px; border-radius: 999px; cursor: pointer;
+        transition: background 0.15s, border-color 0.15s, color 0.15s;
+        text-align: left;
+      }
+      .followup-chip:hover { background: var(--chip-bg); border-color: var(--chip-border); color: rgba(255,255,255,0.85); }
+      .followup-chip.active { background: var(--chip-bg); border-color: var(--chip-border); color: rgba(255,255,255,0.9); }
+
+      #followupAnswer {
+        margin-top: 14px; font-size: 0.82rem; color: rgba(255,255,255,0.65);
+        line-height: 1.75; padding: 12px 14px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.07);
+        border-radius: 10px;
+      }
+
+      #learnMoreSection { margin-top: 14px; }
+      .learn-more-label {
+        font-size: 0.75rem; color: rgba(255,255,255,0.35);
+        margin-bottom: 9px;
+      }
+      .learn-more-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
+      .learn-more-chip {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+        color: rgba(255,255,255,0.5); font-size: 0.72rem;
+        padding: 5px 12px; border-radius: 999px; cursor: pointer;
+        transition: background 0.15s, border-color 0.15s, color 0.15s;
+      }
+      .learn-more-chip:hover { background: var(--chip-bg); border-color: var(--chip-border); color: rgba(255,255,255,0.85); }
+      #learnMoreInput {
+        display: flex; gap: 7px; margin-top: 4px;
+      }
+      #learnMoreInput input {
+        flex: 1; font-size: 0.75rem; padding: 6px 12px; border-radius: 8px;
+      }
+      #learnMoreInput button {
+        font-size: 0.72rem; padding: 6px 14px; border-radius: 8px;
+        white-space: nowrap;
       }
 
       /* ─── Articles section ──────────────────────────────────────────── */
@@ -633,13 +704,16 @@
       <!-- Output -->
       <div id="output" class="w-full max-w-xl mt-5 hidden">
         <div id="loading" class="hidden flex items-center gap-3 px-1 py-6">
+          <svg class="star-burst" viewBox="-8 -8 16 16" width="14" height="14" fill="currentColor" style="color:var(--btn-from)">
+            <!-- 4-pointed sparkle: thin diamond lobes on each axis -->
+            <path d="M0,-7 C0.6,-2 2,0 7,0 C2,0.6 0,2 0,7 C-0.6,2 -2,0 -7,0 C-2,-0.6 0,-2 0,-7 Z"/>
+          </svg>
           <div class="flex gap-1.5">
             <div class="dot w-1.5 h-1.5 rounded-full bg-white/50"></div>
             <div class="dot w-1.5 h-1.5 rounded-full bg-white/50"></div>
             <div class="dot w-1.5 h-1.5 rounded-full bg-white/50"></div>
           </div>
           <span id="loadingText" class="text-white/35 text-xs tracking-wide"></span>
-          <span id="loadingIcon" style="color:var(--btn-from);display:flex;align-items:center"></span>
         </div>
         <div id="resultCard" class="glass rounded-2xl hidden">
           <div class="flex items-center justify-between px-5 py-3 border-b border-white/[0.06]">
@@ -657,6 +731,21 @@
           </div>
           <img id="resultImage" class="hidden" alt="" />
         <div id="result" class="px-5 py-5 text-sm leading-relaxed"></div>
+
+        <div id="followupSection" class="hidden">
+          <div class="followup-label">Dig deeper</div>
+          <div class="followup-chips" id="followupChips"></div>
+          <div id="followupAnswer" class="hidden"></div>
+          <div id="learnMoreSection" class="hidden">
+            <div class="learn-more-label">Want to learn more?</div>
+            <div class="learn-more-chips" id="learnMoreChips"></div>
+            <div id="learnMoreInput">
+              <input id="learnMoreText" class="glass-input" placeholder="Or ask your own question…" />
+              <button class="btn-primary" onclick="submitLearnMore()">Go</button>
+            </div>
+          </div>
+        </div>
+
         <div id="articlesSection" class="hidden">
           <div class="articles-label">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="color:rgba(255,165,0,0.7)">
@@ -755,18 +844,19 @@
       let loadingInterval = null;
 
       const LOADING_PHRASES = [
-        { icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12 2a7 7 0 0 1 5.995 10.63L21 16l-1.5 1.5-1-1-.5.5-1-1-.5.5-1-1-2.755 2.755A7 7 0 1 1 12 2zm0 2a5 5 0 1 0 3.138 8.948l.254-.195 3.315 3.315.207-.207-3.315-3.315.195-.254A5 5 0 0 0 12 4z"/></svg>`, text: 'Pontificating…' },
-        { icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M9 21h6v-1H9v1zm0-2h6v-1H9v1zm6.58-11.42A6 6 0 0 0 6.07 13c-.09 1.18.23 2.33.85 3.28.31.48.73 1.1.88 1.72H9v-7l-2-2 1.41-1.41L10 9.17V7h4v2.17l1.59-1.58L17 9l-2 2v7h1.2c.15-.59.54-1.19.88-1.72A5.96 5.96 0 0 0 15.58 7.58z"/></svg>`, text: 'Clarifying…' },
-        { icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm-6 2l1.5 3H12V4zm-6 0h4v3l2-1 2 1V4h4v16H6V4z"/></svg>`, text: 'Researching…' },
-        { icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M9 3h6l1 5H8L9 3zM5 13l3-5h8l3 5v1a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5v-1zm7 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg>`, text: 'Distilling…' },
-        { icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12 3a9 9 0 1 0 0 18A9 9 0 0 0 12 3zm0 2a7 7 0 0 1 6.33 10H5.67A7 7 0 0 1 12 5zm-3 8h6l-3 5-3-5z"/></svg>`, text: 'Untangling…' },
-        { icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>`, text: 'Synthesizing…' },
+        'Identifying',
+        'Clarifying',
+        'Researching',
+        'Distilling',
+        'Untangling',
+        'Synthesizing',
+        'Gazing into nothing',
+        'Staring into infinity',
       ];
 
       function startLoadingPhrases() {
-        const pick = LOADING_PHRASES[Math.floor(Math.random() * LOADING_PHRASES.length)];
-        document.getElementById('loadingIcon').innerHTML = pick.icon;
-        document.getElementById('loadingText').textContent = pick.text;
+        document.getElementById('loadingText').textContent =
+          LOADING_PHRASES[Math.floor(Math.random() * LOADING_PHRASES.length)];
       }
 
       function stopLoadingPhrases() {
@@ -980,6 +1070,7 @@
       const copyToast      = document.getElementById('copyToast');
 
       topicInput.addEventListener('keydown', e => { if (e.key === 'Enter') analyze(); });
+      document.getElementById('learnMoreText').addEventListener('keydown', e => { if (e.key === 'Enter') submitLearnMore(); });
 
       function setTopic(text) { topicInput.value = text; topicInput.focus(); }
 
@@ -998,6 +1089,11 @@
         result.innerHTML = '';
         resultImage.classList.add('hidden');
         resultImage.src = '';
+        document.getElementById('followupSection').classList.add('hidden');
+        document.getElementById('followupChips').innerHTML = '';
+        document.getElementById('followupAnswer').classList.add('hidden');
+        document.getElementById('followupAnswer').textContent = '';
+        document.getElementById('learnMoreSection').classList.add('hidden');
         document.getElementById('articlesSection').classList.add('hidden');
         document.getElementById('articlePosts').innerHTML = '';
         document.getElementById('redditSection').classList.add('hidden');
@@ -1018,6 +1114,52 @@
       function estimateReadTime(text) {
         const mins = Math.max(1, Math.round(text.trim().split(/\s+/).length / 200));
         return mins === 1 ? '~1 min read' : `~${mins} min read`;
+      }
+
+      async function handleFollowUp(chipEl, topic, question) {
+        // Toggle active chip
+        document.querySelectorAll('.followup-chip').forEach(c => c.classList.remove('active'));
+        chipEl.classList.add('active');
+
+        const answerEl      = document.getElementById('followupAnswer');
+        const learnMoreEl   = document.getElementById('learnMoreSection');
+        answerEl.textContent = '…';
+        answerEl.classList.remove('hidden');
+        learnMoreEl.classList.add('hidden');
+
+        try {
+          const res  = await fetch('/followup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ topic, question }),
+          });
+          const data = await res.json();
+          answerEl.textContent = data.answer ?? '';
+
+          // Render "learn more" aspects
+          const chipsEl = document.getElementById('learnMoreChips');
+          chipsEl.innerHTML = '';
+          if (data.aspects && data.aspects.length) {
+            data.aspects.forEach(aspect => {
+              const btn = document.createElement('button');
+              btn.className = 'learn-more-chip';
+              btn.textContent = aspect;
+              btn.onclick = () => { topicInput.value = aspect; analyze(); };
+              chipsEl.appendChild(btn);
+            });
+          }
+          learnMoreEl.classList.remove('hidden');
+        } catch {
+          answerEl.textContent = 'Something went wrong. Try again.';
+        }
+      }
+
+      function submitLearnMore() {
+        const val = document.getElementById('learnMoreText').value.trim();
+        if (!val) return;
+        topicInput.value = val;
+        document.getElementById('learnMoreText').value = '';
+        analyze();
       }
 
       async function analyze() {
@@ -1059,6 +1201,23 @@
               resultImage.classList.remove('hidden');
             } else {
               resultImage.classList.add('hidden');
+            }
+
+            // Follow-up questions
+            const followupSection = document.getElementById('followupSection');
+            const followupChips   = document.getElementById('followupChips');
+            if (data.followUps && data.followUps.length) {
+              followupChips.innerHTML = '';
+              data.followUps.forEach(q => {
+                const btn = document.createElement('button');
+                btn.className = 'followup-chip';
+                btn.textContent = q;
+                btn.onclick = () => handleFollowUp(btn, topic, q);
+                followupChips.appendChild(btn);
+              });
+              followupSection.classList.remove('hidden');
+            } else {
+              followupSection.classList.add('hidden');
             }
 
             // HackerNews articles
