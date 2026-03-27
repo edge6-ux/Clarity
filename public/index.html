@@ -83,25 +83,48 @@
         60%      { transform: translate(-50%,-50%) scale(1.05); opacity: 0.84; }
       }
 
-      /* Eclipse — orb breathes gently while a void sweeps in from the side */
+      /* Eclipse — orb reacts as void sweeps left → right */
       @keyframes eclipseOrb {
-        0%, 100% { transform: translate(-50%,-50%) scale(0.90); opacity: 0.75; }
-        50%      { transform: translate(-50%,-50%) scale(1.05); opacity: 0.95; }
+        /* idle */
+        0%        { transform: translate(-50%,-50%) scale(0.92); opacity: 0.80; }
+        /* void approaching — start dimming */
+        30%       { transform: translate(-50%,-50%) scale(0.88); opacity: 0.65; }
+        /* void fully over orb — consumed */
+        45%, 55%  { transform: translate(-50%,-50%) scale(0.72); opacity: 0.28; }
+        /* void clearing — reignite flare */
+        68%       { transform: translate(-50%,-50%) scale(1.18); opacity: 1.00; }
+        /* settle back */
+        82%, 100% { transform: translate(-50%,-50%) scale(0.92); opacity: 0.80; }
       }
       @keyframes eclipseSweep {
-        0%        { transform: translate(calc(-50% + 110vmin), -50%); }
-        45%, 55%  { transform: translate(-50%, -50%); }
-        100%      { transform: translate(calc(-50% + 110vmin), -50%); }
+        /* start off-screen right */
+        0%        { transform: translate(calc(-50% + 100vmin), -50%); opacity: 1; }
+        /* sweep to center */
+        45%, 55%  { transform: translate(-50%, -50%);                 opacity: 1; }
+        /* exit off-screen left */
+        95%       { transform: translate(calc(-50% - 100vmin), -50%); opacity: 1; }
+        /* fade out just before loop restart to hide the jump */
+        98%, 100% { transform: translate(calc(-50% - 100vmin), -50%); opacity: 0; }
       }
       #eclipseOverlay {
-        position: fixed; width: 130vmin; height: 130vmin;
+        position: fixed; width: 100vmin; height: 100vmin;
         top: 50%; left: 50%;
         border-radius: 50%;
-        background: radial-gradient(circle at 50% 50%, #000 35%, rgba(0,0,0,0.95) 52%, rgba(0,0,0,0.5) 68%, transparent 82%);
+        background: radial-gradient(circle at 50% 50%, rgba(0,0,0,0.82) 28%, rgba(0,0,0,0.55) 48%, rgba(0,0,0,0.2) 66%, transparent 80%);
         pointer-events: none; z-index: 2;
         display: none;
         animation: eclipseSweep 38s cubic-bezier(0.45, 0, 0.55, 1) infinite;
         will-change: transform;
+      }
+      @keyframes eclipseStarsFade {
+        0%, 38%   { opacity: 0; }
+        47%, 53%  { opacity: 1; }
+        65%, 100% { opacity: 0; }
+      }
+      #eclipseStars {
+        position: fixed; inset: 0;
+        pointer-events: none; z-index: 3;
+        display: none; opacity: 0;
       }
 
       /* Mini preview for Eclipse card */
@@ -575,6 +598,7 @@
     <div class="orb"></div>
     <!-- Eclipse shadow overlay -->
     <div id="eclipseOverlay"></div>
+    <canvas id="eclipseStars"></canvas>
 
     <!-- Storm -->
     <div id="stormContainer">
@@ -925,7 +949,9 @@
       }
 
       /* ── Storm flash engine ──────────────────────────────────────────── */
-      let stormTimeout = null;
+      let stormTimeout   = null;
+      let starLoopId     = null;
+      let starData       = [];
 
       function triggerFlash() {
         const flash = document.getElementById('lightningFlash');
@@ -967,6 +993,57 @@
         stormTimeout = setTimeout(triggerFlash, 4000 + Math.random() * 10000);
       }
 
+      function initEclipseStars() {
+        const canvas = document.getElementById('eclipseStars');
+        const dpr = window.devicePixelRatio || 1;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+
+        // Size canvas in physical pixels, display in CSS pixels (retina/mobile sharp)
+        canvas.width  = w * dpr;
+        canvas.height = h * dpr;
+        canvas.style.width  = w + 'px';
+        canvas.style.height = h + 'px';
+
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr); // all draw calls now use CSS pixel coords
+
+        // Generate stars with independent twinkle params, positions in CSS px space
+        starData = Array.from({ length: 90 }, () => ({
+          x:     Math.random() * w,
+          y:     Math.random() * h,
+          r:     Math.random() * 0.9 + 0.2,
+          base:  Math.random() * 0.22 + 0.06,
+          amp:   Math.random() * 0.18 + 0.04,
+          speed: Math.random() * 1.2 + 0.3,
+          phase: Math.random() * Math.PI * 2,
+        }));
+
+        if (starLoopId) cancelAnimationFrame(starLoopId);
+
+        function drawStars(ts) {
+          const t = ts / 1000;
+          ctx.clearRect(0, 0, w, h);
+          for (const s of starData) {
+            const opacity = s.base + s.amp * Math.sin(t * s.speed * Math.PI * 2 + s.phase);
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255,255,255,${Math.max(0, opacity)})`;
+            ctx.fill();
+          }
+          starLoopId = requestAnimationFrame(drawStars);
+        }
+
+        starLoopId = requestAnimationFrame(drawStars);
+        canvas.style.display = 'block';
+        canvas.style.animation = 'eclipseStarsFade 38s cubic-bezier(0.45, 0, 0.55, 1) infinite';
+      }
+
+      // Reinitialize stars on orientation change / resize while eclipse is active
+      window.addEventListener('resize', () => {
+        if (currentAnim === 'eclipse' && starLoopId) initEclipseStars();
+      });
+
       function startStorm() {
         document.getElementById('stormContainer').style.display = 'block';
         stormTimeout = setTimeout(triggerFlash, 1000 + Math.random() * 3000);
@@ -988,6 +1065,10 @@
         });
         overlay.style.display = 'none';
         stopStorm();
+        if (starLoopId) { cancelAnimationFrame(starLoopId); starLoopId = null; }
+        const starsCanvas = document.getElementById('eclipseStars');
+        starsCanvas.style.display = 'none';
+        starsCanvas.style.animation = 'none';
 
         switch (id) {
           case 'orbit':
@@ -1020,9 +1101,9 @@
             break;
 
           case 'eclipse':
-            // Orb breathes gently at center while darkness sweeps over it
-            orb.style.animation = 'eclipseOrb 6s ease-in-out infinite';
+            orb.style.animation = 'eclipseOrb 38s cubic-bezier(0.45, 0, 0.55, 1) infinite';
             overlay.style.display = 'block';
+            initEclipseStars();
             break;
 
           case 'storm':
