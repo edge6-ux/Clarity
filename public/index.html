@@ -850,6 +850,22 @@
         opacity: 0.35;
       }
 
+      /* ─── Fullscreen button ─────────────────────────────────────────── */
+      #fullscreenBtn {
+        position: fixed; top: 16px; right: 16px; z-index: 1000;
+        width: 32px; height: 32px;
+        display: flex; align-items: center; justify-content: center;
+        border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.04);
+        color: rgba(255,255,255,0.3);
+        cursor: pointer; transition: color 0.2s, background 0.2s, border-color 0.2s;
+      }
+      #fullscreenBtn:hover {
+        color: rgba(255,255,255,0.75);
+        background: rgba(255,255,255,0.08);
+        border-color: rgba(255,255,255,0.18);
+      }
+
       /* Panel section label */
       .panel-section-label {
         font-size: 0.6rem; font-weight: 600; letter-spacing: 0.1em;
@@ -937,6 +953,16 @@
       <!-- Flash overlay -->
       <div id="lightningFlash"></div>
     </div>
+
+    <!-- Fullscreen toggle -->
+    <button id="fullscreenBtn" title="Toggle fullscreen">
+      <svg id="fsExpand" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4"/>
+      </svg>
+      <svg id="fsCompress" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="display:none">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 4v4H4M16 4v4h4M8 20v-4H4M16 20v-4h4"/>
+      </svg>
+    </button>
 
     <!-- Page content (above orb) -->
     <div id="contentWrapper" class="relative z-10 flex flex-col items-center justify-start">
@@ -1897,6 +1923,27 @@
         document.getElementById('menuBtn').classList.remove('open');
       }
       document.addEventListener('keydown', e => { if (e.key === 'Escape') { closePanel(); closeMenu(); } });
+
+      /* ── Fullscreen ──────────────────────────────────────────────────── */
+      (function() {
+        const btn      = document.getElementById('fullscreenBtn');
+        const expand   = document.getElementById('fsExpand');
+        const compress = document.getElementById('fsCompress');
+
+        btn.addEventListener('click', () => {
+          if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+          } else {
+            document.exitFullscreen();
+          }
+        });
+
+        document.addEventListener('fullscreenchange', () => {
+          const isFs = !!document.fullscreenElement;
+          expand.style.display   = isFs ? 'none'  : '';
+          compress.style.display = isFs ? ''      : 'none';
+        });
+      })();
 
       /* ── Hide content ────────────────────────────────────────────────── */
       function applyHideContent(hidden) {
