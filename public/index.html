@@ -199,9 +199,9 @@
       /* ─── Loading sparkle (sequential arm extension) ───────────────────── */
       @keyframes armExtend {
         0%   { stroke-dashoffset: 6.5; opacity: 0.12; }
-        12%  { stroke-dashoffset: 0;   opacity: 1;    }
-        28%  { stroke-dashoffset: 0;   opacity: 1;    }
-        40%  { stroke-dashoffset: 6.5; opacity: 0.12; }
+        10%  { stroke-dashoffset: 0;   opacity: 1;    }
+        22%  { stroke-dashoffset: 0;   opacity: 1;    }
+        32%  { stroke-dashoffset: 6.5; opacity: 0.12; }
         100% { stroke-dashoffset: 6.5; opacity: 0.12; }
       }
       .star-burst { overflow: visible; flex-shrink: 0; }
@@ -209,13 +209,17 @@
         stroke: currentColor; stroke-width: 2; stroke-linecap: round;
         stroke-dasharray: 6.5;
         stroke-dashoffset: 6.5;
-        animation: armExtend 1.6s ease-in-out infinite;
+        animation: armExtend 1.2s ease-in-out infinite;
         opacity: 0.12;
       }
       .star-burst line:nth-child(1) { animation-delay: 0.00s; }
-      .star-burst line:nth-child(2) { animation-delay: 0.40s; }
-      .star-burst line:nth-child(3) { animation-delay: 0.80s; }
-      .star-burst line:nth-child(4) { animation-delay: 1.20s; }
+      .star-burst line:nth-child(2) { animation-delay: 0.15s; }
+      .star-burst line:nth-child(3) { animation-delay: 0.30s; }
+      .star-burst line:nth-child(4) { animation-delay: 0.45s; }
+      .star-burst line:nth-child(5) { animation-delay: 0.60s; }
+      .star-burst line:nth-child(6) { animation-delay: 0.75s; }
+      .star-burst line:nth-child(7) { animation-delay: 0.90s; }
+      .star-burst line:nth-child(8) { animation-delay: 1.05s; }
 
       @keyframes pulseDot {
         0%, 70%, 100% { transform: scale(0.75) translateY(0);   background-color: rgba(255,255,255,0.2); box-shadow: none; }
@@ -710,10 +714,14 @@
       <div id="output" class="w-full max-w-xl mt-5 hidden">
         <div id="loading" class="hidden flex items-center gap-3 px-1 py-6">
           <svg class="star-burst" viewBox="-8 -8 16 16" width="14" height="14" style="color:var(--btn-from)">
-            <line x1="0" y1="0" x2="0"  y2="-6.5"/>
-            <line x1="0" y1="0" x2="6.5" y2="0"/>
-            <line x1="0" y1="0" x2="0"  y2="6.5"/>
+            <line x1="0" y1="0" x2="0"    y2="-6.5"/>
+            <line x1="0" y1="0" x2="4.6"  y2="-4.6"/>
+            <line x1="0" y1="0" x2="6.5"  y2="0"/>
+            <line x1="0" y1="0" x2="4.6"  y2="4.6"/>
+            <line x1="0" y1="0" x2="0"    y2="6.5"/>
+            <line x1="0" y1="0" x2="-4.6" y2="4.6"/>
             <line x1="0" y1="0" x2="-6.5" y2="0"/>
+            <line x1="0" y1="0" x2="-4.6" y2="-4.6"/>
           </svg>
           <span id="loadingText" class="text-white/35 text-xs tracking-wide"></span>
         </div>
