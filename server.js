@@ -66,21 +66,34 @@ AVOID:
 - Overly technical language
 - Citing sources unless absolutely necessary`;
 
+// Strip conversational prefixes so "Explain black holes" → "black holes"
+function cleanTopicForWikipedia(topic) {
+  return topic
+    .replace(/^(explain|describe|what (is|are|was|were)|how (does|do|did)|tell me about|define|who (is|are|was|were)|why (is|are|does|do))\s+/i, "")
+    .trim();
+}
+
 // Fetch the Wikipedia thumbnail for a topic.
 // Returns a URL string or null — never throws.
 async function fetchWikipediaImage(topic) {
+  const headers = { "User-Agent": "Clarity/1.0 (educational app; contact via github)" };
   try {
-    const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(topic)}`;
-    const res = await fetch(url, {
-      headers: { "User-Agent": "Clarity/1.0 (educational app; contact via github)" },
-    });
+    const query = cleanTopicForWikipedia(topic);
+    // Use opensearch to resolve the best matching article title first
+    const searchUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=1&format=json`;
+    const searchRes = await fetch(searchUrl, { headers });
+    if (!searchRes.ok) return null;
+    const [, titles] = await searchRes.json();
+    const title = titles?.[0];
+    if (!title) return null;
+
+    const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
+    const res = await fetch(summaryUrl, { headers });
     if (!res.ok) return null;
     const data = await res.json();
-    // Skip disambiguation pages and articles with no image
     if (data.type !== "standard") return null;
     const src = data.originalimage?.source ?? data.thumbnail?.source ?? null;
     if (!src) return null;
-    // Upscale thumbnail URLs to 800px for a cleaner banner
     return src.replace(/\/\d+px-/, "/800px-");
   } catch {
     return null;
@@ -105,17 +118,11 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
 
     // Handle PDF — extract text and append
     if (file && file.mimetype === "application/pdf") {
-      const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
-      pdfjsLib.GlobalWorkerOptions.workerSrc = false;
-      const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(file.buffer) });
-      const pdf = await loadingTask.promise;
-      let pdfText = "";
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent();
-        pdfText += content.items.map(item => item.str).join(" ") + "\n";
-      }
-      userText += `\n\nContent from uploaded PDF:\n${pdfText}`;
+      const { PDFParse } = require("pdf-parse");
+      const parser = new PDFParse({ data: file.buffer });
+      const data = await parser.getText();
+      await parser.destroy();
+      userText += `\n\nContent from uploaded PDF:\n${data.text}`;
       userContent.push({ type: "text", text: userText });
     }
     // Handle image — send as vision input

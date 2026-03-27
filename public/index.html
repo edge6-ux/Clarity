@@ -19,7 +19,7 @@
     <meta name="twitter:image" content="https://clarity-wine-six.vercel.app/clarity1.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       /* ─── Accent tokens (overridden per theme) ─────────────────────── */
@@ -195,10 +195,11 @@
 
       /* Result image banner */
       #resultImage {
-        width: 100%; height: 200px; object-fit: cover; display: block;
+        width: 100%; max-height: 360px; object-fit: contain;
         border-bottom: 1px solid rgba(255,255,255,0.07);
         animation: fadeInUp 0.5s ease both;
       }
+      #resultImage.hidden { display: none; }
 
       /* ─── Copy toast ────────────────────────────────────────────────── */
       #copyToast {
@@ -345,8 +346,11 @@
 
       <!-- Header -->
       <div class="mb-12 text-center fade-in-up" style="animation-delay:0s">
-        <h1 class="text-5xl font-bold tracking-tight title-gradient mb-3">Clarity</h1>
-        <p class="text-white/35 text-sm font-light tracking-wide">Any topic. Understood in 60 seconds.</p>
+        <h1 class="text-5xl tracking-tight title-gradient mb-4" style="font-family:'Space Grotesk',sans-serif;font-weight:700">Clarity</h1>
+        <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(176,96,255,0.12);border:1px solid rgba(176,96,255,0.28);border-radius:999px;padding:4px 14px;font-size:0.72rem;color:rgba(255,255,255,0.55);letter-spacing:0.05em;font-weight:500">
+          <span style="width:6px;height:6px;border-radius:50%;background:var(--btn-from);box-shadow:0 0 6px var(--btn-glow);flex-shrink:0"></span>
+          Any topic. Understood in 60 seconds.
+        </span>
       </div>
 
       <!-- Input card -->
@@ -370,7 +374,7 @@
           <div class="flex flex-wrap items-center gap-2">
             <span class="text-xs text-white/20 font-light">Try:</span>
             <button class="chip px-3 py-1 rounded-full" onclick="setTopic('Quantum entanglement')">Quantum entanglement</button>
-            <button class="chip px-3 py-1 rounded-full" onclick="setTopic('How black holes form')">Black holes</button>
+            <button class="chip px-3 py-1 rounded-full" onclick="setTopic('Explain black holes')">Black holes</button>
             <button class="chip px-3 py-1 rounded-full" onclick="setTopic('CRISPR gene editing')">CRISPR</button>
             <button class="chip px-3 py-1 rounded-full" onclick="setTopic('The Fermi paradox')">Fermi paradox</button>
             <button class="chip px-3 py-1 rounded-full" onclick="setTopic('How neural networks learn')">Neural networks</button>
@@ -409,6 +413,7 @@
       <!-- Output -->
       <div id="output" class="w-full max-w-xl mt-5 hidden">
         <div id="loading" class="hidden flex items-center gap-3 px-1 py-6">
+          <span id="loadingIcon" style="font-size:1.1rem;line-height:1"></span>
           <div class="flex gap-1.5">
             <div class="dot w-1.5 h-1.5 rounded-full bg-white/50"></div>
             <div class="dot w-1.5 h-1.5 rounded-full bg-white/50"></div>
@@ -510,22 +515,18 @@
       let loadingInterval = null;
 
       const LOADING_PHRASES = [
-        'Pontificating…',
-        'Clarifying…',
-        'Researching…',
-        'Distilling…',
-        'Untangling…',
-        'Synthesizing…',
+        { icon: '🔭', text: 'Pontificating…' },
+        { icon: '💡', text: 'Clarifying…' },
+        { icon: '📚', text: 'Researching…' },
+        { icon: '⚗️', text: 'Distilling…' },
+        { icon: '🧵', text: 'Untangling…' },
+        { icon: '🧠', text: 'Synthesizing…' },
       ];
 
       function startLoadingPhrases() {
-        const el = document.getElementById('loadingText');
-        let i = 0;
-        el.textContent = LOADING_PHRASES[0];
-        loadingInterval = setInterval(() => {
-          i = (i + 1) % LOADING_PHRASES.length;
-          el.textContent = LOADING_PHRASES[i];
-        }, 2000);
+        const pick = LOADING_PHRASES[Math.floor(Math.random() * LOADING_PHRASES.length)];
+        document.getElementById('loadingIcon').textContent = pick.icon;
+        document.getElementById('loadingText').textContent = pick.text;
       }
 
       function stopLoadingPhrases() {
