@@ -360,8 +360,8 @@ function decodeEntities(str) {
     .replace(/&quot;/g, '"').replace(/&#39;/g, "'");
 }
 
-// Parse a basic RSS/Atom XML feed — returns array of { title, url, source }.
-function parseRssItems(xml) {
+// Parse a basic RSS/Atom XML feed — returns array of { title, url, source, image }.
+function parseRssItems(xml, defaultSource = "") {
   const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)];
   return items.map(([, block]) => {
     const raw = decodeEntities(
@@ -372,12 +372,51 @@ function parseRssItems(xml) {
     // Google News embeds " - Source Name" at the end of titles
     const dashIdx = raw.lastIndexOf(" - ");
     const title  = (dashIdx > 0 ? raw.slice(0, dashIdx) : raw).trim();
-    const source = (dashIdx > 0 ? raw.slice(dashIdx + 3) : "").trim();
+    const source = (dashIdx > 0 ? raw.slice(dashIdx + 3) : defaultSource).trim();
     const url    = (block.match(/<link>([\s\S]*?)<\/link>/)?.[1]
                  ?? block.match(/<guid[^>]*>([\s\S]*?)<\/guid>/)?.[1]
                  ?? "").trim();
-    return { title, url, source };
+    // Extract image from media tags or description
+    const image  = block.match(/<media:content[^>]+url="([^"]+)"/)?.[1]
+                ?? block.match(/<media:thumbnail[^>]+url="([^"]+)"/)?.[1]
+                ?? block.match(/<enclosure[^>]+url="([^"]+)"[^>]+type="image/)?.[1]
+                ?? block.match(/<img[^>]+src="([^"]+)"/)?.[1]
+                ?? null;
+    return { title, url, source, image };
   }).filter(a => a.title && a.url.startsWith("http"));
+}
+
+// Fetch top headlines from CNN RSS.
+async function fetchCnnHeadlines() {
+  try {
+    const res = await fetch("https://rss.cnn.com/rss/cnn_topstories.rss", {
+      headers: { "User-Agent": "Clarity/1.0 (educational app; contact via github)" },
+    });
+    if (!res.ok) return [];
+    return parseRssItems(await res.text(), "CNN").slice(0, 5);
+  } catch { return []; }
+}
+
+// Fetch top headlines from Fox News RSS.
+async function fetchFoxHeadlines() {
+  try {
+    const res = await fetch("https://moxie.foxnews.com/google-publisher/latest.xml", {
+      headers: { "User-Agent": "Clarity/1.0 (educational app; contact via github)" },
+    });
+    if (!res.ok) return [];
+    return parseRssItems(await res.text(), "Fox News").slice(0, 5);
+  } catch { return []; }
+}
+
+// Fetch Google News top stories (no query — general headlines).
+async function fetchGoogleTopStories() {
+  try {
+    const res = await fetch("https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en", {
+      headers: { "User-Agent": "Clarity/1.0 (educational app; contact via github)" },
+    });
+    if (!res.ok) return [];
+    return parseRssItems(await res.text()).filter(a => a.source).slice(0, 6);
+  } catch { return []; }
 }
 
 // Fetch ZeroHedge articles relevant to a topic via their RSS feed + keyword matching.
@@ -520,6 +559,34 @@ app.post("/followup", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Something went wrong." });
+  }
+});
+
+// Trending headlines — used for empty history state
+app.get("/trending", async (req, res) => {
+  try {
+    const [cnn, fox, google] = await Promise.all([
+      fetchCnnHeadlines(),
+      fetchFoxHeadlines(),
+      fetchGoogleTopStories(),
+    ]);
+
+    // CNN + Fox first (they have images), then Google News
+    const merged = [...cnn, ...fox, ...google];
+    const seen = new Set();
+    const articles = merged.filter(a => {
+      try {
+        const domain = new URL(a.url).hostname.replace("www.", "");
+        if (seen.has(domain)) return false;
+        seen.add(domain);
+        return true;
+      } catch { return false; }
+    }).slice(0, 8);
+
+    res.json(articles);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json([]);
   }
 });
 
