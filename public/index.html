@@ -424,6 +424,90 @@
       #copyToast.show { opacity: 1; }
 
       /* ─── Customize trigger ─────────────────────────────────────────── */
+      /* ─── Menu (hamburger) button ───────────────────────────────────── */
+      #menuBtn {
+        position: fixed; top: 1.5rem; left: 1.5rem;
+        width: 40px; height: 40px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; z-index: 600;
+        transition: background 0.15s, box-shadow 0.2s, transform 0.1s;
+      }
+      #menuBtn:hover  { background: rgba(255,255,255,0.1); box-shadow: 0 0 18px var(--btn-glow); }
+      #menuBtn:active { transform: scale(0.94); }
+      #menuBtn.open   { background: rgba(255,255,255,0.1); }
+
+      /* ─── Menu drawer ────────────────────────────────────────────────── */
+      #menuBackdrop {
+        position: fixed; inset: 0; z-index: 590;
+        background: rgba(0,0,0,0.35);
+        opacity: 0; pointer-events: none;
+        transition: opacity 0.25s ease;
+      }
+      #menuBackdrop.open { opacity: 1; pointer-events: auto; }
+
+      #menuPanel {
+        position: fixed; top: 0; left: 0; bottom: 0;
+        width: 288px; z-index: 600;
+        background: rgba(10,10,14,0.82);
+        backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+        border-right: 1px solid rgba(255,255,255,0.07);
+        transform: translateX(-100%);
+        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex; flex-direction: column;
+        overflow: hidden;
+      }
+      #menuPanel.open { transform: translateX(0); }
+
+      .menu-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 1.25rem 1rem 1rem;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+        flex-shrink: 0;
+      }
+      .menu-section-label {
+        font-size: 0.65rem; font-weight: 600; letter-spacing: 0.1em;
+        color: rgba(255,255,255,0.25); text-transform: uppercase;
+        padding: 0 1rem; margin-bottom: 0.5rem; margin-top: 1.25rem;
+      }
+      .history-item {
+        display: flex; align-items: flex-start; gap: 0.75rem;
+        padding: 0.65rem 1rem; cursor: pointer;
+        transition: background 0.15s;
+        border-radius: 0;
+      }
+      .history-item:hover { background: rgba(255,255,255,0.05); }
+      .history-item-topic {
+        font-size: 0.82rem; color: rgba(255,255,255,0.72);
+        font-weight: 500; line-height: 1.3;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .history-item-time {
+        font-size: 0.68rem; color: rgba(255,255,255,0.28);
+        margin-top: 0.15rem; flex-shrink: 0;
+      }
+      .history-empty {
+        padding: 2rem 1rem; text-align: center;
+        font-size: 0.8rem; color: rgba(255,255,255,0.22); line-height: 1.6;
+      }
+      .menu-auth-section {
+        padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem;
+        border-top: 1px solid rgba(255,255,255,0.06); flex-shrink: 0;
+      }
+      .menu-btn-primary {
+        width: 100%; padding: 0.6rem 1rem; border-radius: 10px;
+        font-size: 0.82rem; font-weight: 600; color: #fff; text-align: center;
+        background: linear-gradient(135deg, var(--btn-from), var(--btn-to));
+        cursor: pointer; transition: opacity 0.15s;
+      }
+      .menu-btn-primary:hover { opacity: 0.85; }
+      .menu-btn-ghost {
+        width: 100%; padding: 0.6rem 1rem; border-radius: 10px;
+        font-size: 0.82rem; font-weight: 500; color: rgba(255,255,255,0.5);
+        text-align: center; border: 1px solid rgba(255,255,255,0.1);
+        cursor: pointer; transition: background 0.15s, color 0.15s;
+      }
+      .menu-btn-ghost:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.8); }
+
       #customizeBtn {
         position: fixed; bottom: 1.5rem; right: 1.5rem;
         width: 40px; height: 40px; border-radius: 12px;
@@ -804,6 +888,42 @@
 
     </div><!-- end content wrapper -->
 
+    <!-- ─── Menu backdrop ────────────────────────────────────────────── -->
+    <div id="menuBackdrop" onclick="closeMenu()"></div>
+
+    <!-- ─── Menu button ───────────────────────────────────────────────── -->
+    <button class="glass" id="menuBtn" onclick="toggleMenu()" title="Menu">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <line x1="2" y1="4.5" x2="14" y2="4.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" class="text-white/50"/>
+        <line x1="2" y1="8"   x2="14" y2="8"   stroke="currentColor" stroke-width="1.5" stroke-linecap="round" class="text-white/50"/>
+        <line x1="2" y1="11.5" x2="14" y2="11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" class="text-white/50"/>
+      </svg>
+    </button>
+
+    <!-- ─── Menu drawer ────────────────────────────────────────────────── -->
+    <div id="menuPanel">
+      <div class="menu-header">
+        <span class="text-sm font-semibold text-white/60 tracking-wide">Clarity</span>
+        <button onclick="closeMenu()" class="text-white/25 hover:text-white/60 transition p-1">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- History -->
+      <div class="flex-1 overflow-y-auto">
+        <div class="menu-section-label">Recent</div>
+        <div id="historyList"></div>
+      </div>
+
+      <!-- Auth -->
+      <div class="menu-auth-section" id="menuAuthSection">
+        <button class="menu-btn-primary" onclick="closeMenu()">Sign in</button>
+        <button class="menu-btn-ghost"   onclick="closeMenu()">Create account</button>
+      </div>
+    </div>
+
     <!-- ─── Customize trigger ──────────────────────────────────────── -->
     <button class="glass" id="customizeBtn" onclick="togglePanel()" title="Customize">
       <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -873,8 +993,9 @@
 
       /* ── State ───────────────────────────────────────────────────────── */
       let currentTheme = localStorage.getItem('clarity-theme') || 'violet';
-      let currentAnim  = localStorage.getItem('clarity-anim')  || 'orbit';
+      let currentAnim  = localStorage.getItem('clarity-anim')  || 'eclipse';
       let panelOpen    = false;
+      let menuOpen     = false;
       let lastMarkdown = "";
       let loadingInterval = null;
 
@@ -1120,6 +1241,65 @@
         });
       }
 
+      /* ── History ─────────────────────────────────────────────────────── */
+      function getHistory() {
+        try { return JSON.parse(localStorage.getItem('clarity-history') || '[]'); }
+        catch { return []; }
+      }
+
+      function saveToHistory(topic, preview) {
+        const hist = getHistory().filter(h => h.topic.toLowerCase() !== topic.toLowerCase());
+        hist.unshift({ topic, preview: preview.slice(0, 80), ts: Date.now() });
+        localStorage.setItem('clarity-history', JSON.stringify(hist.slice(0, 20)));
+      }
+
+      function timeAgo(ts) {
+        const s = Math.floor((Date.now() - ts) / 1000);
+        if (s < 60)   return 'just now';
+        if (s < 3600) return Math.floor(s / 60) + 'm ago';
+        if (s < 86400) return Math.floor(s / 3600) + 'h ago';
+        return Math.floor(s / 86400) + 'd ago';
+      }
+
+      function renderHistory() {
+        const list = document.getElementById('historyList');
+        const hist = getHistory();
+        if (!hist.length) {
+          list.innerHTML = '<div class="history-empty">Your recent topics<br>will appear here</div>';
+          return;
+        }
+        list.innerHTML = hist.map(h => `
+          <div class="history-item" onclick="rerunTopic(${JSON.stringify(h.topic)})">
+            <div style="flex:1;min-width:0">
+              <div class="history-item-topic">${h.topic}</div>
+              <div class="history-item-time">${timeAgo(h.ts)}</div>
+            </div>
+          </div>`).join('');
+      }
+
+      function rerunTopic(topic) {
+        closeMenu();
+        document.getElementById('topicInput').value = topic;
+        explainTopic();
+      }
+
+      /* ── Menu toggle ─────────────────────────────────────────────────── */
+      function toggleMenu() { menuOpen ? closeMenu() : openMenu(); }
+      function openMenu() {
+        menuOpen = true;
+        renderHistory();
+        document.getElementById('menuPanel').classList.add('open');
+        document.getElementById('menuBackdrop').classList.add('open');
+        document.getElementById('menuBtn').classList.add('open');
+      }
+      function closeMenu() {
+        menuOpen = false;
+        document.getElementById('menuPanel').classList.remove('open');
+        document.getElementById('menuBackdrop').classList.remove('open');
+        document.getElementById('menuBtn').classList.remove('open');
+      }
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') { closePanel(); closeMenu(); } });
+
       /* ── Panel toggle ────────────────────────────────────────────────── */
       function togglePanel() {
         panelOpen ? closePanel() : openPanel();
@@ -1141,8 +1321,10 @@
           closePanel();
         }
       });
-      // Close on Escape
-      document.addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
+      // Close panel on outside click
+      document.addEventListener('click', e => {
+        if (panelOpen && !e.target.closest('#customizePanel') && !e.target.closest('#customizeBtn')) closePanel();
+      });
 
       /* ── Main app ────────────────────────────────────────────────────── */
       const topicInput     = document.getElementById('topicInput');
@@ -1288,6 +1470,7 @@
             result.innerHTML = marked.parse(data.result);
             resultTopic.textContent = topic;
             readTime.textContent = estimateReadTime(data.result);
+            saveToHistory(topic, data.result.replace(/[#*`]/g, '').trim());
             if (data.image) {
               resultImage.src = data.image;
               resultImage.classList.remove('hidden');
