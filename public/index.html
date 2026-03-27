@@ -962,14 +962,14 @@
         <div id="followupSection" class="hidden">
           <div class="followup-label">Dig deeper</div>
           <div class="followup-chips" id="followupChips"></div>
+          <div id="followupCustomInput" style="display:flex;gap:8px;margin-top:10px;">
+            <input id="learnMoreText" class="glass-input" style="flex:1" placeholder="Ask your own question…" onkeydown="if(event.key==='Enter')submitLearnMore()"/>
+            <button class="btn-learn" onclick="submitLearnMore()" style="padding:0 18px;border-radius:8px;font-size:0.78rem;font-weight:600;letter-spacing:0.04em;white-space:nowrap">Ask</button>
+          </div>
           <div id="followupAnswer" class="hidden"></div>
           <div id="learnMoreSection" class="hidden">
             <div class="deeper-section-label" id="deeperResourcesLabel" style="display:none">Read more</div>
             <div class="deeper-resources" id="deeperResources"></div>
-            <div id="learnMoreInput">
-              <input id="learnMoreText" class="glass-input" placeholder="Ask your own question…" onkeydown="if(event.key==='Enter')submitLearnMore()"/>
-              <button class="btn-primary" onclick="submitLearnMore()">Ask</button>
-            </div>
           </div>
         </div>
 
@@ -1201,17 +1201,11 @@
       let loadingInterval = null;
 
       const LOADING_PHRASES = [
-        'Identifying',
-        'Clarifying',
-        'Researching',
-        'Distilling',
-        'Untangling',
-        'Synthesizing',
-        'Gazing into the abyss',
-        'Searching for clarity',
-        'Embracing the orb',
-        'Enveloped by the void',
-        'Staring into infinity',
+        'gazing into the abyss',
+        'searching for clarity',
+        'embracing the orb',
+        'enveloped by the void',
+        'staring into infinity',
       ];
 
       function startLoadingPhrases() {
@@ -1641,7 +1635,6 @@
       const copyToast      = document.getElementById('copyToast');
 
       topicInput.addEventListener('keydown', e => { if (e.key === 'Enter') analyze(); });
-      document.getElementById('learnMoreText').addEventListener('keydown', e => { if (e.key === 'Enter') submitLearnMore(); });
 
       function setTopic(text) { topicInput.value = text; topicInput.focus(); }
 
@@ -1662,6 +1655,8 @@
         resultImage.src = '';
         document.getElementById('followupSection').classList.add('hidden');
         document.getElementById('followupChips').innerHTML = '';
+        document.getElementById('followupCustomInput').style.display = 'flex';
+        document.getElementById('learnMoreText').value = '';
         document.getElementById('followupAnswer').classList.add('hidden');
         document.getElementById('followupAnswer').textContent = '';
         document.getElementById('learnMoreSection').classList.add('hidden');
@@ -1690,9 +1685,12 @@
       }
 
       async function handleFollowUp(chipEl, topic, question) {
-        // Toggle active chip
+        // Mark active chip (if from a pill)
         document.querySelectorAll('.followup-chip').forEach(c => c.classList.remove('active'));
-        chipEl.classList.add('active');
+        if (chipEl) chipEl.classList.add('active');
+
+        // Hide the input row — this is a one-turn interaction
+        document.getElementById('followupCustomInput').style.display = 'none';
 
         const answerEl      = document.getElementById('followupAnswer');
         const learnMoreEl   = document.getElementById('learnMoreSection');
@@ -1739,9 +1737,8 @@
       function submitLearnMore() {
         const val = document.getElementById('learnMoreText').value.trim();
         if (!val) return;
-        topicInput.value = val;
         document.getElementById('learnMoreText').value = '';
-        analyze();
+        handleFollowUp(null, topicInput.value.trim(), val);
       }
 
       async function analyze() {
