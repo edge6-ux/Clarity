@@ -507,6 +507,14 @@
         cursor: pointer; transition: background 0.15s, color 0.15s;
       }
       .menu-btn-ghost:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.8); }
+      .menu-auth-input {
+        width: 100%; padding: 0.55rem 0.75rem; border-radius: 10px; margin-bottom: 0.4rem;
+        font-size: 0.82rem; color: #fff;
+        background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+        outline: none; transition: border-color 0.15s;
+      }
+      .menu-auth-input::placeholder { color: rgba(255,255,255,0.25); }
+      .menu-auth-input:focus { border-color: var(--focus-border); }
 
       #customizeBtn {
         position: fixed; bottom: 1.5rem; right: 1.5rem;
@@ -917,10 +925,19 @@
         <div id="historyList"></div>
       </div>
 
-      <!-- Auth -->
+      <!-- Auth: signed-out form -->
       <div class="menu-auth-section" id="menuAuthSection">
-        <button class="menu-btn-primary" onclick="closeMenu()">Sign in</button>
-        <button class="menu-btn-ghost"   onclick="closeMenu()">Create account</button>
+        <div id="authError" class="text-xs text-red-400/80 mb-2 hidden"></div>
+        <input id="authEmail"    type="email"    placeholder="Email"    class="menu-auth-input" autocomplete="email"             onkeydown="if(event.key==='Enter')authSubmit()"/>
+        <input id="authPassword" type="password" placeholder="Password" class="menu-auth-input" autocomplete="current-password" onkeydown="if(event.key==='Enter')authSubmit()"/>
+        <button class="menu-btn-primary" id="authSubmitBtn" onclick="authSubmit()">Sign in</button>
+        <button class="menu-btn-ghost"   id="authToggleBtn" onclick="authToggleMode()">Create account</button>
+      </div>
+
+      <!-- Auth: signed-in view -->
+      <div class="menu-auth-section hidden" id="menuUserSection">
+        <div id="menuUserEmail" class="text-xs text-white/35 px-1 mb-2 truncate"></div>
+        <button class="menu-btn-ghost" onclick="authSignOut()">Sign out</button>
       </div>
     </div>
 
@@ -965,6 +982,7 @@
     <!-- Copy toast -->
     <div id="copyToast">Copied to clipboard</div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script>
       /* ── Theme definitions ───────────────────────────────────────────── */
@@ -990,6 +1008,78 @@
         { id: 'eclipse', name: 'Eclipse', previewClass: 'preview-eclipse' },
         { id: 'storm',   name: 'Storm',   previewClass: 'preview-storm', soon: true },
       ];
+
+      /* ── Supabase ────────────────────────────────────────────────────── */
+      const _supa = supabase.createClient(
+        'https://eybakzgielanbewxmqoe.supabase.co',
+        'sb_publishable_4gFX1hFfgcb8neclkxy5kA_gvmImlJA'
+      );
+
+      let _authMode = 'signin'; // 'signin' | 'signup'
+
+      function authToggleMode() {
+        _authMode = _authMode === 'signin' ? 'signup' : 'signin';
+        document.getElementById('authSubmitBtn').textContent = _authMode === 'signin' ? 'Sign in' : 'Create account';
+        document.getElementById('authToggleBtn').textContent = _authMode === 'signin' ? 'Create account' : 'Back to sign in';
+        document.getElementById('authError').classList.add('hidden');
+      }
+
+      async function authSubmit() {
+        const email    = document.getElementById('authEmail').value.trim();
+        const password = document.getElementById('authPassword').value;
+        const errEl    = document.getElementById('authError');
+        const btn      = document.getElementById('authSubmitBtn');
+
+        if (!email || !password) { showAuthError('Please enter your email and password.'); return; }
+
+        btn.textContent = _authMode === 'signin' ? 'Signing in...' : 'Creating account...';
+        btn.disabled = true;
+        errEl.classList.add('hidden');
+
+        const { error } = _authMode === 'signin'
+          ? await _supa.auth.signInWithPassword({ email, password })
+          : await _supa.auth.signUp({ email, password });
+
+        btn.disabled = false;
+        btn.textContent = _authMode === 'signin' ? 'Sign in' : 'Create account';
+
+        if (error) { showAuthError(error.message); return; }
+        document.getElementById('authEmail').value    = '';
+        document.getElementById('authPassword').value = '';
+      }
+
+      async function authSignOut() {
+        await _supa.auth.signOut();
+      }
+
+      function showAuthError(msg) {
+        const el = document.getElementById('authError');
+        el.textContent = msg;
+        el.classList.remove('hidden');
+      }
+
+      function updateMenuAuthUI(user) {
+        const authSection = document.getElementById('menuAuthSection');
+        const userSection = document.getElementById('menuUserSection');
+        if (user) {
+          authSection.classList.add('hidden');
+          userSection.classList.remove('hidden');
+          document.getElementById('menuUserEmail').textContent = user.email;
+        } else {
+          authSection.classList.remove('hidden');
+          userSection.classList.add('hidden');
+        }
+      }
+
+      // React to auth state changes in real time
+      _supa.auth.onAuthStateChange((_event, session) => {
+        updateMenuAuthUI(session?.user ?? null);
+      });
+
+      // Set initial UI state from existing session
+      _supa.auth.getSession().then(({ data }) => {
+        updateMenuAuthUI(data.session?.user ?? null);
+      });
 
       /* ── State ───────────────────────────────────────────────────────── */
       let currentTheme = localStorage.getItem('clarity-theme') || 'violet';
