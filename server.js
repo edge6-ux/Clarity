@@ -135,6 +135,12 @@ STYLE GUIDELINES:
 - Avoid buzzwords and clichés like "passionate leader" or "results-driven"
 - Make it feel modern and intentional
 
+OPENING LINE RULES — match the opening to how the user phrased their search:
+- If they asked who created/built/made Clarity → open with "Clarity was created by Edgerrin Washington..."
+- If they searched "Edge" or "who is Edge" → open with: Edgerrin Washington (aka "Edge") is...
+- If they searched "Edgerrin" or "Edgerrin Washington" → open naturally with his full name
+- Never start with "I" — this is always third person
+
 CONTENT GUIDELINES:
 - Blend personal background with current work
 - Highlight the contrast of public service + building products
@@ -154,6 +160,66 @@ function isCreatorQuery(topic) {
   return CREATOR_TRIGGERS.some(r => r.test(topic.trim()));
 }
 
+// Detect queries about Clarity the product, not the concept
+const CLARITY_PRODUCT_TRIGGERS = [
+  /^clarity$/i,
+  /^what\s+is\s+clarity(\?)?$/i,
+  /^tell\s+me\s+about\s+clarity(\?)?$/i,
+  /^what('?s|\s+is)\s+clarity(\s+app)?(\?)?$/i,
+  /^(explain|describe)\s+clarity(\?)?$/i,
+  /^clarity\s+app(\?)?$/i,
+  /^ineedclarity(\?)?$/i,
+];
+
+// Concept qualifiers override product detection (e.g. "clarity in writing")
+const CLARITY_CONCEPT_OVERRIDES = [
+  /clarity\s+(in|of|for|meaning|definition|synonym)/i,
+  /\bcommunication\b/i,
+  /\bwriting\b/i,
+  /\bthinking\b/i,
+  /\bvision\b/i,
+  /\bspeech\b/i,
+];
+
+function isClarityProductQuery(topic) {
+  const t = topic.trim();
+  if (CLARITY_CONCEPT_OVERRIDES.some(r => r.test(t))) return false;
+  return CLARITY_PRODUCT_TRIGGERS.some(r => r.test(t));
+}
+
+const CLARITY_PRODUCT_PROMPT = `You are generating a product explanation for Clarity — an AI-powered research app — to show when a user searches for "Clarity" inside the app itself.
+
+Write a natural, grounded, slightly varied explanation each time. Do not sound promotional or salesy. Sound like you're explaining it to a curious person.
+
+Use this structure exactly:
+
+## What is Clarity
+- Clarity is an AI-powered research app created by Edgerrin Washington
+- It helps users understand any topic quickly by turning complex information into clear, structured insights
+- Instead of sending users down rabbit holes, Clarity delivers what matters most in seconds
+
+## What it does
+- Breaks down topics into key insights, real-world relevance, and opposing perspectives
+- Surfaces not just information, but understanding
+- Helps users cut through noise and stay informed with intention
+
+## Why it exists
+- Built to solve information overload
+- Designed for people who want clarity, not just more content
+- Focused on real-world utility over complexity
+
+## More context
+- If you meant the general definition of "clarity" (the concept), you can refine your question (e.g. "what does clarity mean in communication")
+
+## TL;DR
+- Clarity is a tool that helps you understand anything faster and more clearly
+
+STYLE RULES:
+- Keep tone clear, confident, concise
+- Do not sound overly promotional
+- Slightly vary wording each time while keeping meaning consistent
+- Do not repeat identical phrasing across responses`;
+
 app.post("/analyze", upload.single("file"), async (req, res) => {
   const topic = req.body.topic?.trim();
   const context = req.body.context?.trim();
@@ -161,6 +227,25 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
 
   if (!topic) {
     return res.status(400).json({ error: "A topic is required." });
+  }
+
+  // Clarity product queries — explain the app itself
+  if (isClarityProductQuery(topic)) {
+    try {
+      const prodResponse = await client.chat.completions.create({
+        model: "gpt-4o-mini",
+        max_tokens: 400,
+        messages: [
+          { role: "system", content: CLARITY_PRODUCT_PROMPT },
+          { role: "user",   content: topic },
+        ],
+      });
+      const prodResult = prodResponse.choices[0]?.message?.content ?? "";
+      return res.json({ topic, result: prodResult, image: null, reddit: [], articles: [] });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Something went wrong. Try again." });
+    }
   }
 
   // Creator / about-the-builder queries — return a generated bio instead
@@ -171,7 +256,7 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
         max_tokens: 300,
         messages: [
           { role: "system", content: CREATOR_BIO_PROMPT },
-          { role: "user",   content: "Tell me about Edgerrin Washington." },
+          { role: "user",   content: topic },
         ],
       });
       const bio = bioResponse.choices[0]?.message?.content ?? "";
@@ -229,6 +314,27 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
       fetchZeroHedgeArticles(topic),
     ]);
 
+    const text = aiResponse.choices[0]?.message?.content ?? "";
+
+    // Generate follow-up questions using the result for context
+    let followUps = [];
+    try {
+      const fuRes = await client.chat.completions.create({
+        model: "gpt-4o-mini",
+        max_tokens: 150,
+        messages: [
+          { role: "system", content: `Generate exactly 3 short follow-up questions for a topic. Mix:
+1. A devil's advocate or contrarian challenge
+2. A common misconception or overlooked angle
+3. A "what happens next" or consequence-based question
+Return ONLY a valid JSON array of 3 strings, each under 9 words. No other text.` },
+          { role: "user", content: `Topic: ${topic}\nContext: ${text.slice(0, 400)}` },
+        ],
+      });
+      const raw = fuRes.choices[0]?.message?.content ?? "[]";
+      followUps = JSON.parse(raw.match(/\[[\s\S]*\]/)?.[0] ?? "[]");
+    } catch { followUps = []; }
+
     // ZeroHedge first, then Google News, then HN. Dedupe by domain.
     const seen = new Set();
     const articles = [...zhArticles, ...newsArticles, ...hnArticles].filter(a => {
@@ -240,8 +346,7 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
       } catch { return false; }
     }).slice(0, 5);
 
-    const text = aiResponse.choices[0]?.message?.content ?? "";
-    res.json({ topic, result: text, image: image ?? null, reddit: redditPosts, articles });
+    res.json({ topic, result: text, image: image ?? null, reddit: redditPosts, articles, followUps });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Something went wrong. Try again." });
@@ -374,6 +479,48 @@ async function fetchRedditPosts(topic) {
     return [];
   }
 }
+
+app.post("/followup", async (req, res) => {
+  const { topic, question } = req.body;
+  if (!topic || !question) return res.status(400).json({ error: "Missing topic or question." });
+
+  try {
+    const [answerRes, aspectsRes] = await Promise.all([
+      client.chat.completions.create({
+        model: "gpt-4o-mini",
+        max_tokens: 180,
+        messages: [
+          { role: "system", content: `You are Clarity's follow-up assistant. Answer the question briefly and directly.
+- 2–4 sentences max
+- No markdown headers or bullet points
+- Conversational but sharp
+- Stay tightly focused on the question asked` },
+          { role: "user", content: `Topic: ${topic}\nQuestion: ${question}` },
+        ],
+      }),
+      client.chat.completions.create({
+        model: "gpt-4o-mini",
+        max_tokens: 100,
+        messages: [
+          { role: "system", content: `Generate 3 short aspect labels a user might want to explore further about a topic. Each should be a specific sub-topic or angle (2–4 words). Return ONLY a valid JSON array of 3 strings. No other text.` },
+          { role: "user", content: `Topic: ${topic}` },
+        ],
+      }),
+    ]);
+
+    const answer  = answerRes.choices[0]?.message?.content ?? "";
+    let   aspects = [];
+    try {
+      const raw = aspectsRes.choices[0]?.message?.content ?? "[]";
+      aspects = JSON.parse(raw.match(/\[[\s\S]*\]/)?.[0] ?? "[]");
+    } catch { aspects = []; }
+
+    res.json({ answer, aspects });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Something went wrong." });
+  }
+});
 
 // Local dev
 if (process.env.NODE_ENV !== "production") {
