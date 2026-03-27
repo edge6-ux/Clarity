@@ -289,7 +289,7 @@
       /* ─── Mobile overrides ───────────────────────────────────────────── */
       @media (max-width: 768px) {
         /* Prevent iOS auto-zoom on input focus (requires font-size >= 16px) */
-        .glass-input, .menu-auth-input, #learnMoreInput input {
+        .glass-input, .menu-auth-input, #learnMoreText {
           font-size: 16px !important;
         }
 
@@ -962,9 +962,11 @@
         <div id="followupSection" class="hidden">
           <div class="followup-label">Dig deeper</div>
           <div class="followup-chips" id="followupChips"></div>
-          <div id="followupCustomInput" style="display:flex;gap:8px;margin-top:10px;">
-            <input id="learnMoreText" class="glass-input" style="flex:1" placeholder="Ask your own question…" onkeydown="if(event.key==='Enter')submitLearnMore()"/>
-            <button class="btn-learn" onclick="submitLearnMore()" style="padding:0 18px;border-radius:8px;font-size:0.78rem;font-weight:600;letter-spacing:0.04em;white-space:nowrap">Ask</button>
+          <div id="followupCustomInput" style="display:flex;align-items:center;gap:6px;margin-top:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:999px;padding:4px 4px 4px 14px;">
+            <input id="learnMoreText" placeholder="Ask your own question…" onkeydown="if(event.key==='Enter')submitLearnMore()" style="flex:1;background:none;border:none;outline:none;color:#fff;font-size:0.72rem;line-height:1;" />
+            <button onclick="submitLearnMore()" style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:999px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.6);flex-shrink:0;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='var(--chip-bg)';this.style.color='rgba(255,255,255,0.9)'" onmouseout="this.style.background='rgba(255,255,255,0.08)';this.style.color='rgba(255,255,255,0.6)'">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
           </div>
           <div id="followupAnswer" class="hidden"></div>
           <div id="learnMoreSection" class="hidden">
