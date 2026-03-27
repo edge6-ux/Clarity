@@ -196,21 +196,26 @@
       }
       .fade-in-up { animation: fadeInUp 0.4s ease both; }
 
-      /* ─── Loading sparkle (Claude-style rotating 4-pointed star) ──────── */
-      @keyframes sparkleRotate {
-        from { transform: rotate(0deg)   scale(1);    }
-        50%  { transform: rotate(180deg) scale(1.15); }
-        to   { transform: rotate(360deg) scale(1);    }
+      /* ─── Loading sparkle (sequential arm extension) ───────────────────── */
+      @keyframes armExtend {
+        0%   { stroke-dashoffset: 6.5; opacity: 0.12; }
+        12%  { stroke-dashoffset: 0;   opacity: 1;    }
+        28%  { stroke-dashoffset: 0;   opacity: 1;    }
+        40%  { stroke-dashoffset: 6.5; opacity: 0.12; }
+        100% { stroke-dashoffset: 6.5; opacity: 0.12; }
       }
-      @keyframes sparklePulse {
-        0%, 100% { opacity: 0.7; }
-        50%      { opacity: 1;   }
+      .star-burst { overflow: visible; flex-shrink: 0; }
+      .star-burst line {
+        stroke: currentColor; stroke-width: 2; stroke-linecap: round;
+        stroke-dasharray: 6.5;
+        stroke-dashoffset: 6.5;
+        animation: armExtend 1.6s ease-in-out infinite;
+        opacity: 0.12;
       }
-      .star-burst {
-        overflow: visible; flex-shrink: 0;
-        animation: sparkleRotate 2s linear infinite, sparklePulse 2s ease-in-out infinite;
-        transform-origin: center;
-      }
+      .star-burst line:nth-child(1) { animation-delay: 0.00s; }
+      .star-burst line:nth-child(2) { animation-delay: 0.40s; }
+      .star-burst line:nth-child(3) { animation-delay: 0.80s; }
+      .star-burst line:nth-child(4) { animation-delay: 1.20s; }
 
       @keyframes pulseDot {
         0%, 70%, 100% { transform: scale(0.75) translateY(0);   background-color: rgba(255,255,255,0.2); box-shadow: none; }
@@ -704,15 +709,12 @@
       <!-- Output -->
       <div id="output" class="w-full max-w-xl mt-5 hidden">
         <div id="loading" class="hidden flex items-center gap-3 px-1 py-6">
-          <svg class="star-burst" viewBox="-8 -8 16 16" width="14" height="14" fill="currentColor" style="color:var(--btn-from)">
-            <!-- 4-pointed sparkle: thin diamond lobes on each axis -->
-            <path d="M0,-7 C0.6,-2 2,0 7,0 C2,0.6 0,2 0,7 C-0.6,2 -2,0 -7,0 C-2,-0.6 0,-2 0,-7 Z"/>
+          <svg class="star-burst" viewBox="-8 -8 16 16" width="14" height="14" style="color:var(--btn-from)">
+            <line x1="0" y1="0" x2="0"  y2="-6.5"/>
+            <line x1="0" y1="0" x2="6.5" y2="0"/>
+            <line x1="0" y1="0" x2="0"  y2="6.5"/>
+            <line x1="0" y1="0" x2="-6.5" y2="0"/>
           </svg>
-          <div class="flex gap-1.5">
-            <div class="dot w-1.5 h-1.5 rounded-full bg-white/50"></div>
-            <div class="dot w-1.5 h-1.5 rounded-full bg-white/50"></div>
-            <div class="dot w-1.5 h-1.5 rounded-full bg-white/50"></div>
-          </div>
           <span id="loadingText" class="text-white/35 text-xs tracking-wide"></span>
         </div>
         <div id="resultCard" class="glass rounded-2xl hidden">
