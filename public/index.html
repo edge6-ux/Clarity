@@ -212,14 +212,15 @@
         animation: armExtend 1.2s ease-in-out infinite;
         opacity: 0.12;
       }
-      .star-burst line:nth-child(1) { animation-delay: 0.00s; }
-      .star-burst line:nth-child(2) { animation-delay: 0.15s; }
-      .star-burst line:nth-child(3) { animation-delay: 0.30s; }
-      .star-burst line:nth-child(4) { animation-delay: 0.45s; }
-      .star-burst line:nth-child(5) { animation-delay: 0.60s; }
-      .star-burst line:nth-child(6) { animation-delay: 0.75s; }
-      .star-burst line:nth-child(7) { animation-delay: 0.90s; }
-      .star-burst line:nth-child(8) { animation-delay: 1.05s; }
+      /* pairs: N+S, NE+SW, E+W, SE+NW */
+      .star-burst line:nth-child(1) { animation-delay: 0.00s; } /* N  */
+      .star-burst line:nth-child(2) { animation-delay: 0.30s; } /* NE */
+      .star-burst line:nth-child(3) { animation-delay: 0.60s; } /* E  */
+      .star-burst line:nth-child(4) { animation-delay: 0.90s; } /* SE */
+      .star-burst line:nth-child(5) { animation-delay: 0.00s; } /* S  */
+      .star-burst line:nth-child(6) { animation-delay: 0.30s; } /* SW */
+      .star-burst line:nth-child(7) { animation-delay: 0.60s; } /* W  */
+      .star-burst line:nth-child(8) { animation-delay: 0.90s; } /* NW */
 
       @keyframes pulseDot {
         0%, 70%, 100% { transform: scale(0.75) translateY(0);   background-color: rgba(255,255,255,0.2); box-shadow: none; }
