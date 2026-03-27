@@ -83,6 +83,47 @@
         60%      { transform: translate(-50%,-50%) scale(1.05); opacity: 0.84; }
       }
 
+      /* Eclipse — orb breathes gently while a void sweeps in from the side */
+      @keyframes eclipseOrb {
+        0%, 100% { transform: translate(-50%,-50%) scale(0.90); opacity: 0.75; }
+        50%      { transform: translate(-50%,-50%) scale(1.05); opacity: 0.95; }
+      }
+      @keyframes eclipseSweep {
+        0%        { transform: translate(calc(-50% + 110vmin), -50%); }
+        45%, 55%  { transform: translate(-50%, -50%); }
+        100%      { transform: translate(calc(-50% + 110vmin), -50%); }
+      }
+      #eclipseOverlay {
+        position: fixed; width: 130vmin; height: 130vmin;
+        top: 50%; left: 50%;
+        border-radius: 50%;
+        background: radial-gradient(circle at 50% 50%, #000 35%, rgba(0,0,0,0.95) 52%, rgba(0,0,0,0.5) 68%, transparent 82%);
+        pointer-events: none; z-index: 2;
+        display: none;
+        animation: eclipseSweep 38s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+        will-change: transform;
+      }
+
+      /* Mini preview for Eclipse card */
+      .preview-eclipse {
+        position: absolute; inset: 0; overflow: hidden;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .preview-eclipse::before {
+        content: "";
+        width: 18px; height: 18px; border-radius: 50%;
+        background: radial-gradient(circle, var(--btn-from), var(--btn-to));
+        box-shadow: 0 0 8px var(--btn-glow);
+        position: absolute; flex-shrink: 0;
+      }
+      .preview-eclipse::after {
+        content: "";
+        width: 18px; height: 18px; border-radius: 50%;
+        background: #000;
+        position: absolute;
+        animation: eclipseSweep 28s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+      }
+
       /* Aurora — wide horizontal band drifting across */
       @keyframes auroraAnim {
         0%   { transform: translateX(0)    translateY(0)    scaleY(1.00) skewX(0deg);  opacity: 0.60; }
@@ -156,10 +197,10 @@
       .fade-in-up { animation: fadeInUp 0.4s ease both; }
 
       @keyframes pulseDot {
-        0%, 80%, 100% { opacity: 0.2; transform: scale(0.75); }
-        40%            { opacity: 1;   transform: scale(1); }
+        0%, 70%, 100% { transform: scale(0.75) translateY(0);   background-color: rgba(255,255,255,0.2); box-shadow: none; }
+        35%            { transform: scale(1.1)  translateY(-4px); background-color: var(--btn-from);       box-shadow: 0 0 6px var(--btn-glow); }
       }
-      .dot { animation: pulseDot 1.3s infinite ease-in-out; }
+      .dot { animation: pulseDot 1.4s infinite ease-in-out; }
       .dot:nth-child(2) { animation-delay: 0.18s; }
       .dot:nth-child(3) { animation-delay: 0.36s; }
 
@@ -192,6 +233,73 @@
       }
       #result hr { border-color: rgba(255,255,255,0.07); margin: 1em 0; }
       #result a  { color: rgba(255,255,255,0.7); text-decoration: underline; text-underline-offset: 2px; }
+
+      /* ─── Reddit section ────────────────────────────────────────────── */
+      #redditSection {
+        border-top: 1px solid rgba(255,255,255,0.06);
+        padding: 14px 20px 16px;
+      }
+      #redditSection .reddit-label {
+        font-size: 0.6rem; font-weight: 600; letter-spacing: 0.1em;
+        text-transform: uppercase; color: rgba(255,255,255,0.22);
+        display: flex; align-items: center; gap: 6px; margin-bottom: 10px;
+      }
+      .reddit-post {
+        display: flex; flex-direction: column; gap: 1px;
+        padding: 8px 10px; border-radius: 8px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.06);
+        text-decoration: none;
+        transition: background 0.15s, border-color 0.15s;
+        margin-bottom: 6px;
+      }
+      .reddit-post:last-child { margin-bottom: 0; }
+      .reddit-post:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); }
+      .reddit-post .rp-title {
+        font-size: 0.78rem; color: rgba(255,255,255,0.7);
+        line-height: 1.4; display: -webkit-box;
+        -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+      }
+      .reddit-post .rp-meta {
+        font-size: 0.65rem; color: rgba(255,255,255,0.25);
+        margin-top: 3px;
+      }
+
+      /* ─── Articles section ──────────────────────────────────────────── */
+      #articlesSection {
+        border-top: 1px solid rgba(255,255,255,0.06);
+        padding: 14px 20px 16px;
+      }
+      #articlesSection .articles-label {
+        font-size: 0.6rem; font-weight: 600; letter-spacing: 0.1em;
+        text-transform: uppercase; color: rgba(255,255,255,0.22);
+        display: flex; align-items: center; gap: 6px; margin-bottom: 10px;
+      }
+      .article-post {
+        display: flex; align-items: flex-start; gap: 10px;
+        padding: 8px 10px; border-radius: 8px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.06);
+        text-decoration: none;
+        transition: background 0.15s, border-color 0.15s;
+        margin-bottom: 6px;
+      }
+      .article-post:last-child { margin-bottom: 0; }
+      .article-post:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); }
+      .article-post .ap-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+      .article-post .ap-title {
+        font-size: 0.78rem; color: rgba(255,255,255,0.7);
+        line-height: 1.4; display: -webkit-box;
+        -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+      }
+      .article-post .ap-meta {
+        font-size: 0.65rem; color: rgba(255,255,255,0.25);
+      }
+      .article-post .ap-points {
+        font-size: 0.62rem; font-weight: 600;
+        color: rgba(255,120,50,0.6);
+        white-space: nowrap; padding-top: 1px;
+      }
 
       /* Result image banner */
       #resultImage {
@@ -328,6 +436,50 @@
         background: radial-gradient(ellipse 80% 80% at 0% 0%, rgba(255,255,255,0.12) 0%, transparent 70%);
       }
 
+      /* ─── Storm ─────────────────────────────────────────────────────── */
+      #stormContainer { position:fixed; inset:0; pointer-events:none; z-index:1; display:none; }
+
+      @keyframes rollCloud {
+        from { transform: translateX(110vw); }
+        to   { transform: translateX(calc(-100% - 10vw)); }
+      }
+
+      .storm-roll {
+        position: absolute;
+        animation: rollCloud linear infinite;
+      }
+
+      #lightningFlash {
+        position: fixed; inset: 0;
+        background: var(--btn-from);
+        opacity: 0; pointer-events: none; z-index: 3;
+        transition: opacity 0.04s ease;
+      }
+
+      /* Mini preview for Storm card */
+      @keyframes miniCloudRoll {
+        from { transform: translateX(72px); }
+        to   { transform: translateX(-72px); }
+      }
+      @keyframes miniFlash {
+        0%, 75%, 80%, 84%, 100% { opacity: 0; }
+        77%, 82%                 { opacity: 1; }
+      }
+      .preview-storm {
+        position: absolute; inset: 0; overflow: hidden;
+        background: #05060f;
+      }
+      .preview-storm::before {
+        content: "";
+        position: absolute; top: 0; left: 0; right: 0; height: 100%;
+        background: rgba(190,215,255,0);
+        animation: miniFlash 5s ease-in-out infinite;
+      }
+      .preview-storm .mini-cloud {
+        position: absolute;
+        animation: miniCloudRoll linear infinite;
+      }
+
       /* Panel section label */
       .panel-section-label {
         font-size: 0.6rem; font-weight: 600; letter-spacing: 0.1em;
@@ -340,13 +492,81 @@
 
     <!-- Orbiting glow orb -->
     <div class="orb"></div>
+    <!-- Eclipse shadow overlay -->
+    <div id="eclipseOverlay"></div>
+
+    <!-- Storm -->
+    <div id="stormContainer">
+
+      <!-- Cloud 3 — high wispy, fastest -->
+      <div class="storm-roll" style="top:-70px;width:58vw;animation-duration:42s;animation-delay:-12s;">
+        <svg viewBox="-30 0 580 160" xmlns="http://www.w3.org/2000/svg" width="100%" preserveAspectRatio="none">
+          <path d="
+            M-30,160
+            Q-22,145 -18,130 Q-24,115 -14,105 Q-18,90 -5,82
+            Q25,68 48,76 Q60,50 88,58 Q102,32 132,42 Q150,16 182,26
+            Q202,4 236,15 Q258,0 290,10 Q314,2 340,14 Q362,5 386,20
+            Q408,10 430,26 Q450,16 470,34 Q490,24 508,42
+            Q518,52 522,68 Q528,85 520,100 Q524,118 515,135 Q520,148 512,160
+            Z" fill="rgba(13,16,30,0.30)"/>
+        </svg>
+      </div>
+
+      <!-- Cloud 2 — medium, midground -->
+      <div class="storm-roll" style="top:-50px;width:98vw;animation-duration:62s;animation-delay:-28s;">
+        <svg viewBox="-40 0 980 220" xmlns="http://www.w3.org/2000/svg" width="100%" preserveAspectRatio="none">
+          <path d="
+            M-40,220
+            Q-32,205 -28,188 Q-35,170 -22,158 Q-28,140 -15,130
+            Q45,112 78,122 Q95,88 132,98 Q150,65 190,76 Q210,42 252,54
+            Q274,20 315,33 Q340,5 380,18 Q405,0 445,15 Q470,2 508,20
+            Q532,8 568,30 Q592,16 626,42 Q650,28 682,55 Q705,40 736,65
+            Q758,52 788,76 Q810,62 840,85 Q862,72 892,95
+            Q908,108 912,125 Q918,144 908,160 Q914,178 904,195 Q910,210 900,220
+            Z" fill="rgba(8,10,22,0.38)"/>
+        </svg>
+      </div>
+
+      <!-- Cloud 1 — large, dark, slow -->
+      <div class="storm-roll" style="top:-90px;width:125vw;animation-duration:88s;animation-delay:-40s;">
+        <svg viewBox="-50 0 1300 250" xmlns="http://www.w3.org/2000/svg" width="100%" preserveAspectRatio="none">
+          <path d="
+            M-50,250
+            Q-42,232 -38,212 Q-45,192 -30,178 Q-36,160 -20,150 Q-26,132 -10,125
+            Q80,140 130,158 Q150,110 200,125 Q222,80 278,98 Q302,52 362,72
+            Q392,28 455,50 Q488,10 555,35 Q588,8 652,35 Q685,15 745,45
+            Q775,25 832,58 Q860,38 918,72 Q945,52 1000,85
+            Q1028,65 1082,98 Q1108,80 1152,112 Q1175,98 1200,125
+            Q1212,138 1215,158 Q1222,178 1210,198 Q1218,220 1205,240 Q1210,248 1200,250
+            Z" fill="rgba(5,7,16,0.42)"/>
+        </svg>
+      </div>
+
+      <!-- Cloud 4 — wide, very dark, creeping along the bottom -->
+      <div class="storm-roll" style="top:60px;width:138vw;animation-duration:112s;animation-delay:-70s;">
+        <svg viewBox="-50 0 1310 250" xmlns="http://www.w3.org/2000/svg" width="100%" preserveAspectRatio="none">
+          <path d="
+            M-50,250
+            Q-40,232 -38,215 Q-44,196 -30,184 Q-36,165 -18,155 Q-24,138 -8,132
+            Q55,160 92,175 Q112,135 158,150 Q178,108 228,125 Q252,85 305,102
+            Q330,62 385,80 Q412,40 470,60 Q498,22 558,44 Q588,15 648,38
+            Q678,18 735,48 Q762,28 818,60 Q845,42 898,72 Q922,55 972,85
+            Q996,68 1044,98 Q1068,82 1112,108 Q1138,95 1172,120 Q1192,130 1200,148
+            Q1212,162 1210,182 Q1218,202 1205,222 Q1212,240 1200,250
+            Z" fill="rgba(4,5,14,0.45)"/>
+        </svg>
+      </div>
+
+      <!-- Flash overlay -->
+      <div id="lightningFlash"></div>
+    </div>
 
     <!-- Page content (above orb) -->
     <div class="relative z-10 flex flex-col items-center justify-start">
 
       <!-- Header -->
       <div class="mb-12 text-center fade-in-up" style="animation-delay:0s">
-        <h1 class="text-5xl tracking-tight title-gradient mb-4" style="font-family:'Space Grotesk',sans-serif;font-weight:700">Clarity</h1>
+        <h1 class="text-5xl tracking-tight title-gradient mb-4" style="font-family:'Space Grotesk',sans-serif;font-weight:700;opacity:0.72;cursor:pointer" onclick="resetUI()">Clarity</h1>
         <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(176,96,255,0.12);border:1px solid rgba(176,96,255,0.28);border-radius:999px;padding:4px 14px;font-size:0.72rem;color:rgba(255,255,255,0.55);letter-spacing:0.05em;font-weight:500">
           <span style="width:6px;height:6px;border-radius:50%;background:var(--btn-from);box-shadow:0 0 6px var(--btn-glow);flex-shrink:0"></span>
           Any topic. Understood in 60 seconds.
@@ -413,13 +633,13 @@
       <!-- Output -->
       <div id="output" class="w-full max-w-xl mt-5 hidden">
         <div id="loading" class="hidden flex items-center gap-3 px-1 py-6">
-          <span id="loadingIcon" style="font-size:1.1rem;line-height:1"></span>
           <div class="flex gap-1.5">
             <div class="dot w-1.5 h-1.5 rounded-full bg-white/50"></div>
             <div class="dot w-1.5 h-1.5 rounded-full bg-white/50"></div>
             <div class="dot w-1.5 h-1.5 rounded-full bg-white/50"></div>
           </div>
           <span id="loadingText" class="text-white/35 text-xs tracking-wide"></span>
+          <span id="loadingIcon" style="color:var(--btn-from);display:flex;align-items:center"></span>
         </div>
         <div id="resultCard" class="glass rounded-2xl hidden">
           <div class="flex items-center justify-between px-5 py-3 border-b border-white/[0.06]">
@@ -437,6 +657,24 @@
           </div>
           <img id="resultImage" class="hidden" alt="" />
         <div id="result" class="px-5 py-5 text-sm leading-relaxed"></div>
+        <div id="articlesSection" class="hidden">
+          <div class="articles-label">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="color:rgba(255,165,0,0.7)">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+            </svg>
+            Further Reading
+          </div>
+          <div id="articlePosts"></div>
+        </div>
+        <div id="redditSection" class="hidden">
+          <div class="reddit-label">
+            <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor" style="color:rgba(255,69,0,0.7)">
+              <path d="M20 10a10 10 0 1 1-20 0 10 10 0 0 1 20 0zm-8.39-1.61c.93.14 1.73.63 2.27 1.33a1.5 1.5 0 1 1 .12 2.93c-.07.87-.55 1.65-1.27 2.19-.74.55-1.71.83-2.73.83s-1.99-.28-2.73-.83c-.72-.54-1.2-1.32-1.27-2.19a1.5 1.5 0 1 1 .12-2.93c.54-.7 1.34-1.19 2.27-1.33l.93-2.09a.5.5 0 0 1 .91.03l1.19 2.67a2.01 2.01 0 0 1 .19-.62zM8 12a1 1 0 1 0 2 0 1 1 0 0 0-2 0zm4 0a1 1 0 1 0-2 0 1 1 0 0 0 2 0z"/>
+            </svg>
+            Discussed on Reddit
+          </div>
+          <div id="redditPosts"></div>
+        </div>
         </div>
       </div>
 
@@ -475,7 +713,7 @@
         <!-- Animation section -->
         <div>
           <div class="panel-section-label">Background</div>
-          <div id="animContainer" class="grid grid-cols-4 gap-2"></div>
+          <div id="animContainer" class="grid grid-cols-3 gap-2"></div>
         </div>
       </div>
     </div>
@@ -501,10 +739,12 @@
 
       /* ── Animation definitions ───────────────────────────────────────── */
       const ANIMS = [
-        { id: 'orbit',  name: 'Orbit',  previewClass: 'preview-orbit'  },
-        { id: 'pulse',  name: 'Pulse',  previewClass: 'preview-pulse'  },
-        { id: 'aurora', name: 'Aurora', previewClass: 'preview-aurora' },
-        { id: 'static', name: 'Static', previewClass: 'preview-static' },
+        { id: 'orbit',   name: 'Orbit',   previewClass: 'preview-orbit'   },
+        { id: 'pulse',   name: 'Pulse',   previewClass: 'preview-pulse'   },
+        { id: 'aurora',  name: 'Aurora',  previewClass: 'preview-aurora'  },
+        { id: 'static',  name: 'Static',  previewClass: 'preview-static'  },
+        { id: 'eclipse', name: 'Eclipse', previewClass: 'preview-eclipse' },
+        { id: 'storm',   name: 'Storm',   previewClass: 'preview-storm', soon: true },
       ];
 
       /* ── State ───────────────────────────────────────────────────────── */
@@ -515,17 +755,17 @@
       let loadingInterval = null;
 
       const LOADING_PHRASES = [
-        { icon: '🔭', text: 'Pontificating…' },
-        { icon: '💡', text: 'Clarifying…' },
-        { icon: '📚', text: 'Researching…' },
-        { icon: '⚗️', text: 'Distilling…' },
-        { icon: '🧵', text: 'Untangling…' },
-        { icon: '🧠', text: 'Synthesizing…' },
+        { icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12 2a7 7 0 0 1 5.995 10.63L21 16l-1.5 1.5-1-1-.5.5-1-1-.5.5-1-1-2.755 2.755A7 7 0 1 1 12 2zm0 2a5 5 0 1 0 3.138 8.948l.254-.195 3.315 3.315.207-.207-3.315-3.315.195-.254A5 5 0 0 0 12 4z"/></svg>`, text: 'Pontificating…' },
+        { icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M9 21h6v-1H9v1zm0-2h6v-1H9v1zm6.58-11.42A6 6 0 0 0 6.07 13c-.09 1.18.23 2.33.85 3.28.31.48.73 1.1.88 1.72H9v-7l-2-2 1.41-1.41L10 9.17V7h4v2.17l1.59-1.58L17 9l-2 2v7h1.2c.15-.59.54-1.19.88-1.72A5.96 5.96 0 0 0 15.58 7.58z"/></svg>`, text: 'Clarifying…' },
+        { icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm-6 2l1.5 3H12V4zm-6 0h4v3l2-1 2 1V4h4v16H6V4z"/></svg>`, text: 'Researching…' },
+        { icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M9 3h6l1 5H8L9 3zM5 13l3-5h8l3 5v1a5 5 0 0 1-5 5H10a5 5 0 0 1-5-5v-1zm7 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/></svg>`, text: 'Distilling…' },
+        { icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12 3a9 9 0 1 0 0 18A9 9 0 0 0 12 3zm0 2a7 7 0 0 1 6.33 10H5.67A7 7 0 0 1 12 5zm-3 8h6l-3 5-3-5z"/></svg>`, text: 'Untangling…' },
+        { icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="15" height="15"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>`, text: 'Synthesizing…' },
       ];
 
       function startLoadingPhrases() {
         const pick = LOADING_PHRASES[Math.floor(Math.random() * LOADING_PHRASES.length)];
-        document.getElementById('loadingIcon').textContent = pick.icon;
+        document.getElementById('loadingIcon').innerHTML = pick.icon;
         document.getElementById('loadingText').textContent = pick.text;
       }
 
@@ -572,23 +812,81 @@
         const container = document.getElementById('animContainer');
         ANIMS.forEach(a => {
           const card = document.createElement('div');
-          card.className = 'anim-card' + (a.id === currentAnim ? ' active' : '');
+          card.className = 'anim-card' + (a.id === currentAnim ? ' active' : '') + (a.soon ? ' soon' : '');
           card.innerHTML = `
             <div class="${a.previewClass}"></div>
             <span class="anim-label">${a.name}</span>
+            ${a.soon ? '<span class="soon-badge">Soon</span>' : ''}
           `;
-          card.addEventListener('click', () => selectAnim(a.id));
+          if (!a.soon) card.addEventListener('click', () => selectAnim(a.id));
           container.appendChild(card);
         });
       }
 
+      /* ── Storm flash engine ──────────────────────────────────────────── */
+      let stormTimeout = null;
+
+      function triggerFlash() {
+        const flash = document.getElementById('lightningFlash');
+        // 3 flash patterns: single strong, double flicker, triple stutter
+        const pattern = Math.floor(Math.random() * 3);
+
+        function pulse(opacity, holdMs, fadeMs) {
+          return new Promise(resolve => {
+            flash.style.transition = 'none';
+            flash.style.opacity = String(opacity);
+            setTimeout(() => {
+              flash.style.transition = `opacity ${fadeMs}ms ease`;
+              flash.style.opacity = '0';
+              setTimeout(resolve, fadeMs);
+            }, holdMs);
+          });
+        }
+
+        async function runPattern() {
+          if (pattern === 0) {
+            // Single strong bloom
+            await pulse(0.22, 55, 120);
+          } else if (pattern === 1) {
+            // Double flicker
+            await pulse(0.18, 40, 60);
+            await new Promise(r => setTimeout(r, 80));
+            await pulse(0.12, 35, 100);
+          } else {
+            // Triple stutter — rapid then fade
+            await pulse(0.20, 30, 40);
+            await new Promise(r => setTimeout(r, 55));
+            await pulse(0.14, 25, 35);
+            await new Promise(r => setTimeout(r, 40));
+            await pulse(0.08, 20, 80);
+          }
+        }
+
+        runPattern();
+        stormTimeout = setTimeout(triggerFlash, 4000 + Math.random() * 10000);
+      }
+
+      function startStorm() {
+        document.getElementById('stormContainer').style.display = 'block';
+        stormTimeout = setTimeout(triggerFlash, 1000 + Math.random() * 3000);
+      }
+
+      function stopStorm() {
+        clearTimeout(stormTimeout);
+        stormTimeout = null;
+        document.getElementById('stormContainer').style.display = 'none';
+      }
+
       function selectAnim(id) {
         const orb = document.querySelector('.orb');
+        const overlay = document.getElementById('eclipseOverlay');
 
         // Clear all inline overrides so CSS defaults (orbit) can resume
-        ['top','left','width','height','transform','borderRadius','animation','filter'].forEach(p => {
+        ['top','left','width','height','transform','borderRadius','animation','filter','opacity'].forEach(p => {
           orb.style[p] = '';
         });
+        overlay.style.display = 'none';
+        stopStorm();
 
         switch (id) {
           case 'orbit':
@@ -618,6 +916,18 @@
             orb.style.left      = '0';
             orb.style.transform = 'translate(-50%, -50%)';
             orb.style.animation = 'none';
+            break;
+
+          case 'eclipse':
+            // Orb breathes gently at center while darkness sweeps over it
+            orb.style.animation = 'eclipseOrb 6s ease-in-out infinite';
+            overlay.style.display = 'block';
+            break;
+
+          case 'storm':
+            orb.style.opacity  = '0';
+            orb.style.animation = 'none';
+            startStorm();
             break;
         }
 
@@ -688,6 +998,10 @@
         result.innerHTML = '';
         resultImage.classList.add('hidden');
         resultImage.src = '';
+        document.getElementById('articlesSection').classList.add('hidden');
+        document.getElementById('articlePosts').innerHTML = '';
+        document.getElementById('redditSection').classList.add('hidden');
+        document.getElementById('redditPosts').innerHTML = '';
         lastMarkdown = '';
         topicInput.value = '';
         topicInput.focus();
@@ -745,6 +1059,37 @@
               resultImage.classList.remove('hidden');
             } else {
               resultImage.classList.add('hidden');
+            }
+
+            // HackerNews articles
+            const articlesSection = document.getElementById('articlesSection');
+            const articlePosts    = document.getElementById('articlePosts');
+            if (data.articles && data.articles.length) {
+              articlePosts.innerHTML = data.articles.map(a => `
+                <a class="article-post" href="${a.url}" target="_blank" rel="noopener noreferrer">
+                  <div class="ap-text">
+                    <span class="ap-title">${a.title}</span>
+                    <span class="ap-meta">${a.source || a.domain}</span>
+                  </div>
+                  ${a.points ? `<span class="ap-points">${a.points.toLocaleString()} pts</span>` : ''}
+                </a>`).join('');
+              articlesSection.classList.remove('hidden');
+            } else {
+              articlesSection.classList.add('hidden');
+            }
+
+            // Reddit posts
+            const redditSection = document.getElementById('redditSection');
+            const redditPosts   = document.getElementById('redditPosts');
+            if (data.reddit && data.reddit.length) {
+              redditPosts.innerHTML = data.reddit.map(p => `
+                <a class="reddit-post" href="${p.url}" target="_blank" rel="noopener noreferrer">
+                  <span class="rp-title">${p.title}</span>
+                  <span class="rp-meta">r/${p.subreddit} &middot; ${p.score.toLocaleString()} upvotes</span>
+                </a>`).join('');
+              redditSection.classList.remove('hidden');
+            } else {
+              redditSection.classList.add('hidden');
             }
           }
         } catch {

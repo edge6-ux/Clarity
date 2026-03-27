@@ -100,6 +100,60 @@ async function fetchWikipediaImage(topic) {
   }
 }
 
+const CREATOR_TRIGGERS = [
+  /^edge$/i,
+  /^edgerrin$/i,
+  /^edgerrin\s+washington$/i,
+  /who\s+(is|made|built|created|made)\s+(clarity|this)/i,
+  /who\s+created\s+clarity/i,
+  /who\s+built\s+clarity/i,
+  /about\s+the\s+(creator|developer|maker|founder)/i,
+  /^who\s+is\s+edge$/i,
+  /^who\s+is\s+edgerrin/i,
+];
+
+const CREATOR_BIO_PROMPT = `You are generating a short "About Me" profile for a user inside the Clarity app.
+
+The goal is to write a compelling, polished, slightly impressive (but not arrogant) profile that feels human and natural—not templated. You are the Clarity AI explaining who this person is to someone who just searched for them.
+
+You MUST incorporate the following core facts:
+- Edgerrin Washington is a full-time public servant and part-time developer
+- He builds digital tools with real-world utility
+- He cares about helping small businesses
+- He built:
+  - Clarity (the app the user is currently using — a tool for understanding topics quickly)
+  - a news tracker app (custom keyword-based news aggregation)
+- He grew up in Immokalee, Florida
+- He is currently based in Washington, D.C.
+
+STYLE GUIDELINES:
+- Write in third person — you are describing Edgerrin to the user
+- Keep it concise (4–7 sentences max)
+- Vary phrasing and sentence structure each time (do NOT reuse fixed templates)
+- Tone: confident, thoughtful, mission-driven
+- "Glaze" the user slightly (make them sound impressive), but keep it believable
+- Avoid buzzwords and clichés like "passionate leader" or "results-driven"
+- Make it feel modern and intentional
+
+CONTENT GUIDELINES:
+- Blend personal background with current work
+- Highlight the contrast of public service + building products
+- Emphasize usefulness and real-world impact of their tools
+- Optionally include a subtle forward-looking or mission-oriented closing line
+
+AVOID:
+- Repetitive sentence patterns
+- Overly formal or corporate tone
+- Lists or bullet points
+- Sounding generic or AI-generated
+
+OUTPUT:
+Return only the final "About Me" text.`;
+
+function isCreatorQuery(topic) {
+  return CREATOR_TRIGGERS.some(r => r.test(topic.trim()));
+}
+
 app.post("/analyze", upload.single("file"), async (req, res) => {
   const topic = req.body.topic?.trim();
   const context = req.body.context?.trim();
@@ -107,6 +161,25 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
 
   if (!topic) {
     return res.status(400).json({ error: "A topic is required." });
+  }
+
+  // Creator / about-the-builder queries — return a generated bio instead
+  if (isCreatorQuery(topic)) {
+    try {
+      const bioResponse = await client.chat.completions.create({
+        model: "gpt-4o-mini",
+        max_tokens: 300,
+        messages: [
+          { role: "system", content: CREATOR_BIO_PROMPT },
+          { role: "user",   content: "Tell me about Edgerrin Washington." },
+        ],
+      });
+      const bio = bioResponse.choices[0]?.message?.content ?? "";
+      return res.json({ topic, result: bio, image: null, reddit: [], articles: [] });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Something went wrong. Try again." });
+    }
   }
 
   try {
@@ -139,8 +212,8 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
       userContent.push({ type: "text", text: userText });
     }
 
-    // Run AI and Wikipedia image lookup in parallel — no added latency
-    const [aiResponse, image] = await Promise.all([
+    // Run all lookups in parallel — no added latency
+    const [aiResponse, image, redditPosts, hnArticles, newsArticles, zhArticles] = await Promise.all([
       client.chat.completions.create({
         model: "gpt-4o-mini",
         max_tokens: 1024,
@@ -150,15 +223,157 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
         ],
       }),
       fetchWikipediaImage(topic),
+      fetchRedditPosts(topic),
+      fetchHackerNewsArticles(topic),
+      fetchGoogleNewsArticles(topic),
+      fetchZeroHedgeArticles(topic),
     ]);
 
+    // ZeroHedge first, then Google News, then HN. Dedupe by domain.
+    const seen = new Set();
+    const articles = [...zhArticles, ...newsArticles, ...hnArticles].filter(a => {
+      try {
+        const host = new URL(a.url).hostname;
+        if (seen.has(host)) return false;
+        seen.add(host);
+        return true;
+      } catch { return false; }
+    }).slice(0, 5);
+
     const text = aiResponse.choices[0]?.message?.content ?? "";
-    res.json({ topic, result: text, image: image ?? null });
+    res.json({ topic, result: text, image: image ?? null, reddit: redditPosts, articles });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Something went wrong. Try again." });
   }
 });
+
+// Decode common HTML entities in RSS text.
+function decodeEntities(str) {
+  return str
+    .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+}
+
+// Parse a basic RSS/Atom XML feed — returns array of { title, url, source }.
+function parseRssItems(xml) {
+  const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)];
+  return items.map(([, block]) => {
+    const raw = decodeEntities(
+      block.match(/<title><!\[CDATA\[([\s\S]*?)\]\]>/)?.[1]
+      ?? block.match(/<title>([\s\S]*?)<\/title>/)?.[1]
+      ?? ""
+    );
+    // Google News embeds " - Source Name" at the end of titles
+    const dashIdx = raw.lastIndexOf(" - ");
+    const title  = (dashIdx > 0 ? raw.slice(0, dashIdx) : raw).trim();
+    const source = (dashIdx > 0 ? raw.slice(dashIdx + 3) : "").trim();
+    const url    = (block.match(/<link>([\s\S]*?)<\/link>/)?.[1]
+                 ?? block.match(/<guid[^>]*>([\s\S]*?)<\/guid>/)?.[1]
+                 ?? "").trim();
+    return { title, url, source };
+  }).filter(a => a.title && a.url.startsWith("http"));
+}
+
+// Fetch ZeroHedge articles relevant to a topic via their RSS feed + keyword matching.
+// Returns array of { title, url, source } or [] — never throws.
+async function fetchZeroHedgeArticles(topic) {
+  const STOP = new Set(["the","a","an","and","or","of","in","on","at","to","for",
+    "with","is","are","was","were","be","been","how","what","why","who","does","do",
+    "explain","describe","tell","me","about","define"]);
+  try {
+    const keywords = cleanTopicForWikipedia(topic)
+      .toLowerCase().split(/\s+/)
+      .filter(w => w.length > 2 && !STOP.has(w));
+    if (!keywords.length) return [];
+
+    const res = await fetch("https://feeds.feedburner.com/zerohedge/feed", {
+      headers: { "User-Agent": "Clarity/1.0 (educational app; contact via github)" },
+    });
+    if (!res.ok) return [];
+    const xml = await res.text();
+
+    return parseRssItems(xml)
+      .filter(a => {
+        const haystack = a.title.toLowerCase();
+        return keywords.some(kw => haystack.includes(kw));
+      })
+      .slice(0, 2)
+      .map(a => ({ ...a, source: "ZeroHedge" }));
+  } catch {
+    return [];
+  }
+}
+
+// Fetch articles from Google News RSS (aggregates Fox, CNN, BBC, Reuters, AP, etc.)
+// Returns array of { title, url, source } or [] — never throws.
+async function fetchGoogleNewsArticles(topic) {
+  try {
+    const query = encodeURIComponent(cleanTopicForWikipedia(topic));
+    const url   = `https://news.google.com/rss/search?q=${query}&hl=en-US&gl=US&ceid=US:en`;
+    const res   = await fetch(url, {
+      headers: { "User-Agent": "Clarity/1.0 (educational app; contact via github)" },
+    });
+    if (!res.ok) return [];
+    const xml = await res.text();
+    return parseRssItems(xml)
+      .filter(a => a.source)
+      .slice(0, 4);
+  } catch {
+    return [];
+  }
+}
+
+// Fetch top HackerNews articles for a topic.
+// Returns array of { title, url, domain, points } or [] — never throws.
+async function fetchHackerNewsArticles(topic) {
+  try {
+    const query = encodeURIComponent(cleanTopicForWikipedia(topic));
+    const url = `https://hn.algolia.com/api/v1/search?query=${query}&tags=story&hitsPerPage=8`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": "Clarity/1.0 (educational app; contact via github)" },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.hits ?? [])
+      .filter(h => h.url && h.points >= 50)
+      .slice(0, 3)
+      .map(h => ({
+        title:  h.title,
+        url:    h.url,
+        domain: new URL(h.url).hostname.replace(/^www\./, ""),
+        points: h.points,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+// Fetch top Reddit posts for a topic.
+// Returns an array of { title, url, subreddit, score } or [] — never throws.
+async function fetchRedditPosts(topic) {
+  try {
+    const query = encodeURIComponent(topic);
+    const url = `https://www.reddit.com/search.json?q=${query}&sort=relevance&t=year&limit=5&type=link`;
+    const res = await fetch(url, {
+      headers: { "User-Agent": "Clarity/1.0 (educational app; contact via github)" },
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    const posts = data?.data?.children ?? [];
+    return posts
+      .map(p => ({
+        title:     p.data.title,
+        url:       `https://reddit.com${p.data.permalink}`,
+        subreddit: p.data.subreddit,
+        score:     p.data.score,
+      }))
+      .filter(p => p.score >= 50)
+      .slice(0, 3);
+  } catch {
+    return [];
+  }
+}
 
 // Local dev
 if (process.env.NODE_ENV !== "production") {
