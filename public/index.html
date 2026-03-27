@@ -258,12 +258,6 @@
         from { opacity: 1; }
         to   { opacity: 0; }
       }
-      #splashLogo {
-        width: 72px; height: 72px; object-fit: contain;
-        opacity: 0;
-        animation: splashItemIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.15s forwards;
-        filter: drop-shadow(0 0 24px var(--btn-glow));
-      }
       #splashTitle {
         font-family: 'Space Grotesk', sans-serif; font-weight: 700;
         font-size: 2.4rem; letter-spacing: -0.01em;
@@ -836,7 +830,6 @@
 
     <!-- ─── Splash screen ──────────────────────────────────────────────── -->
     <div id="splashScreen">
-      <img id="splashLogo" src="/clarity3.png" alt="Clarity" />
       <div id="splashTitle" class="title-gradient">Clarity</div>
       <div id="splashTagline">
         <span id="splashDot"></span>
