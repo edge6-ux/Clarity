@@ -485,7 +485,7 @@ app.post("/followup", async (req, res) => {
   if (!topic || !question) return res.status(400).json({ error: "Missing topic or question." });
 
   try {
-    const [answerRes, aspectsRes] = await Promise.all([
+    const [answerRes, resources] = await Promise.all([
       client.chat.completions.create({
         model: "gpt-4o-mini",
         max_tokens: 180,
@@ -498,24 +498,25 @@ app.post("/followup", async (req, res) => {
           { role: "user", content: `Topic: ${topic}\nQuestion: ${question}` },
         ],
       }),
-      client.chat.completions.create({
-        model: "gpt-4o-mini",
-        max_tokens: 100,
-        messages: [
-          { role: "system", content: `Generate 3 short aspect labels a user might want to explore further about a topic. Each should be a specific sub-topic or angle (2–4 words). Return ONLY a valid JSON array of 3 strings. No other text.` },
-          { role: "user", content: `Topic: ${topic}` },
-        ],
-      }),
+      Promise.all([
+        fetchGoogleNewsArticles(question),
+        fetchHackerNewsArticles(question),
+      ]).then(([news, hn]) => {
+        const merged = [...news, ...hn];
+        const seen = new Set();
+        return merged.filter(a => {
+          try {
+            const domain = new URL(a.url).hostname.replace('www.', '');
+            if (seen.has(domain)) return false;
+            seen.add(domain);
+            return true;
+          } catch { return false; }
+        }).slice(0, 3);
+      }).catch(() => []),
     ]);
 
-    const answer  = answerRes.choices[0]?.message?.content ?? "";
-    let   aspects = [];
-    try {
-      const raw = aspectsRes.choices[0]?.message?.content ?? "[]";
-      aspects = JSON.parse(raw.match(/\[[\s\S]*\]/)?.[0] ?? "[]");
-    } catch { aspects = []; }
-
-    res.json({ answer, aspects });
+    const answer = answerRes.choices[0]?.message?.content ?? "";
+    res.json({ answer, resources });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Something went wrong." });

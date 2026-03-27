@@ -116,6 +116,15 @@
         animation: eclipseSweep 38s cubic-bezier(0.45, 0, 0.55, 1) infinite;
         will-change: transform;
       }
+      @keyframes eclipseTitleFade {
+        0%, 10%   { opacity: 0.72; }
+        45%, 55%  { opacity: 0;    }
+        70%, 100% { opacity: 0.72; }
+      }
+      .eclipse-title-fade {
+        animation: eclipseTitleFade 38s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+      }
+
       @keyframes eclipseStarsFade {
         0%, 38%   { opacity: 0; }
         47%, 53%  { opacity: 1; }
@@ -187,6 +196,28 @@
       .btn-primary:hover:not(:disabled) { opacity: 0.88; box-shadow: 0 0 22px var(--btn-glow); }
       .btn-primary:active:not(:disabled) { transform: scale(0.97); }
       .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+      /* Icy silver button — frosted base tinted by the current accent glow */
+      .btn-learn {
+        background: linear-gradient(160deg,
+          rgba(235, 238, 255, 0.18) 0%,
+          rgba(210, 216, 240, 0.10) 100%
+        );
+        border: 1px solid rgba(255,255,255,0.22);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 0 18px var(--btn-glow);
+        color: rgba(255,255,255,0.92); font-weight: 600; letter-spacing: 0.01em;
+        backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        transition: box-shadow 0.2s, background 0.2s, transform 0.1s;
+      }
+      .btn-learn:hover:not(:disabled) {
+        background: linear-gradient(160deg,
+          rgba(235, 238, 255, 0.26) 0%,
+          rgba(210, 216, 240, 0.16) 100%
+        );
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 0 28px var(--btn-glow);
+      }
+      .btn-learn:active:not(:disabled) { transform: scale(0.97); }
+      .btn-learn:disabled { opacity: 0.4; cursor: not-allowed; }
 
       .btn-ghost {
         background: rgba(255,255,255,0.05);
@@ -344,30 +375,29 @@
         border-radius: 10px;
       }
 
-      #learnMoreSection { margin-top: 14px; }
-      .learn-more-label {
-        font-size: 0.75rem; color: rgba(255,255,255,0.35);
-        margin-bottom: 9px;
+      #learnMoreSection { margin-top: 14px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 14px; }
+      .deeper-section-label {
+        font-size: 0.6rem; font-weight: 600; letter-spacing: 0.1em;
+        text-transform: uppercase; color: rgba(255,255,255,0.22);
+        margin-bottom: 8px; margin-top: 12px;
       }
-      .learn-more-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
-      .learn-more-chip {
-        background: rgba(255,255,255,0.04);
-        border: 1px solid rgba(255,255,255,0.08);
-        color: rgba(255,255,255,0.5); font-size: 0.72rem;
-        padding: 5px 12px; border-radius: 999px; cursor: pointer;
-        transition: background 0.15s, border-color 0.15s, color 0.15s;
+      .deeper-section-label:first-child { margin-top: 0; }
+      /* Resource links */
+      .deeper-resources { display: flex; flex-direction: column; gap: 5px; margin-bottom: 4px; }
+      .deeper-resource {
+        display: flex; align-items: center; justify-content: space-between;
+        font-size: 0.78rem; color: rgba(255,255,255,0.55);
+        padding: 5px 10px;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 8px; text-decoration: none;
+        transition: background 0.15s, color 0.15s;
       }
-      .learn-more-chip:hover { background: var(--chip-bg); border-color: var(--chip-border); color: rgba(255,255,255,0.85); }
-      #learnMoreInput {
-        display: flex; gap: 7px; margin-top: 4px;
-      }
-      #learnMoreInput input {
-        flex: 1; font-size: 0.75rem; padding: 6px 12px; border-radius: 8px;
-      }
-      #learnMoreInput button {
-        font-size: 0.72rem; padding: 6px 14px; border-radius: 8px;
-        white-space: nowrap;
-      }
+      .deeper-resource:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.85); }
+      .deeper-resource-source { font-size: 0.68rem; color: rgba(255,255,255,0.28); flex-shrink: 0; margin-left: 8px; }
+      #learnMoreInput { display: flex; gap: 7px; margin-top: 10px; }
+      #learnMoreInput input  { flex: 1; font-size: 0.75rem; padding: 6px 12px; border-radius: 8px; }
+      #learnMoreInput button { font-size: 0.72rem; padding: 6px 14px; border-radius: 8px; white-space: nowrap; }
 
       /* ─── Articles section ──────────────────────────────────────────── */
       #articlesSection {
@@ -763,8 +793,8 @@
 
       <!-- Header -->
       <div class="mb-12 text-center fade-in-up" style="animation-delay:0s">
-        <h1 class="text-5xl tracking-tight title-gradient mb-4" style="font-family:'Space Grotesk',sans-serif;font-weight:700;opacity:0.72;cursor:pointer" onclick="resetUI()">Clarity</h1>
-        <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(176,96,255,0.12);border:1px solid rgba(176,96,255,0.28);border-radius:999px;padding:4px 14px;font-size:0.72rem;color:rgba(255,255,255,0.55);letter-spacing:0.05em;font-weight:500">
+        <h1 id="siteTitle" class="text-5xl tracking-tight title-gradient mb-4" style="font-family:'Space Grotesk',sans-serif;font-weight:700;opacity:0.72;cursor:pointer" onclick="resetUI()">Clarity</h1>
+        <span id="siteTagline" style="display:inline-flex;align-items:center;gap:6px;background:rgba(176,96,255,0.12);border:1px solid rgba(176,96,255,0.28);border-radius:999px;padding:4px 14px;font-size:0.72rem;color:rgba(255,255,255,0.55);letter-spacing:0.05em;font-weight:500">
           <span style="width:6px;height:6px;border-radius:50%;background:var(--btn-from);box-shadow:0 0 6px var(--btn-glow);flex-shrink:0"></span>
           Any topic. Understood in 60 seconds.
         </span>
@@ -782,8 +812,8 @@
               placeholder="Enter a topic…"
               class="glass-input flex-1 rounded-xl px-4 py-3 text-sm font-light"
             />
-            <button id="analyzeBtn" onclick="analyze()" class="btn-primary px-5 py-3 rounded-xl text-sm">
-              Go
+            <button id="analyzeBtn" onclick="analyze()" class="btn-learn px-5 py-3 rounded-lg text-sm">
+              Learn
             </button>
           </div>
 
@@ -864,11 +894,11 @@
           <div class="followup-chips" id="followupChips"></div>
           <div id="followupAnswer" class="hidden"></div>
           <div id="learnMoreSection" class="hidden">
-            <div class="learn-more-label">Want to learn more?</div>
-            <div class="learn-more-chips" id="learnMoreChips"></div>
+            <div class="deeper-section-label" id="deeperResourcesLabel" style="display:none">Read more</div>
+            <div class="deeper-resources" id="deeperResources"></div>
             <div id="learnMoreInput">
-              <input id="learnMoreText" class="glass-input" placeholder="Or ask your own question…" />
-              <button class="btn-primary" onclick="submitLearnMore()">Go</button>
+              <input id="learnMoreText" class="glass-input" placeholder="Ask your own question…" onkeydown="if(event.key==='Enter')submitLearnMore()"/>
+              <button class="btn-primary" onclick="submitLearnMore()">Ask</button>
             </div>
           </div>
         </div>
@@ -1098,6 +1128,8 @@
         'Synthesizing',
         'Gazing into the abyss',
         'Searching for clarity',
+        'Embracing the orb',
+        'Enveloped by the void',
         'Staring into infinity',
       ];
 
@@ -1278,6 +1310,8 @@
         overlay.style.display = 'none';
         stopStorm();
         if (starLoopId) { cancelAnimationFrame(starLoopId); starLoopId = null; }
+        document.getElementById('siteTitle').classList.remove('eclipse-title-fade');
+        document.getElementById('siteTagline').classList.remove('eclipse-title-fade');
         const starsCanvas = document.getElementById('eclipseStars');
         starsCanvas.style.display = 'none';
         starsCanvas.style.animation = 'none';
@@ -1316,6 +1350,8 @@
             orb.style.animation = 'eclipseOrb 38s cubic-bezier(0.45, 0, 0.55, 1) infinite';
             overlay.style.display = 'block';
             initEclipseStars();
+            document.getElementById('siteTitle').classList.add('eclipse-title-fade');
+            document.getElementById('siteTagline').classList.add('eclipse-title-fade');
             break;
 
           case 'storm':
@@ -1486,6 +1522,8 @@
         document.getElementById('followupAnswer').classList.add('hidden');
         document.getElementById('followupAnswer').textContent = '';
         document.getElementById('learnMoreSection').classList.add('hidden');
+        document.getElementById('deeperResources').innerHTML = '';
+        document.getElementById('deeperResourcesLabel').style.display = 'none';
         document.getElementById('articlesSection').classList.add('hidden');
         document.getElementById('articlePosts').innerHTML = '';
         document.getElementById('redditSection').classList.add('hidden');
@@ -1528,18 +1566,27 @@
           const data = await res.json();
           answerEl.textContent = data.answer ?? '';
 
-          // Render "learn more" aspects
-          const chipsEl = document.getElementById('learnMoreChips');
-          chipsEl.innerHTML = '';
-          if (data.aspects && data.aspects.length) {
-            data.aspects.forEach(aspect => {
-              const btn = document.createElement('button');
-              btn.className = 'learn-more-chip';
-              btn.textContent = aspect;
-              btn.onclick = () => { topicInput.value = aspect; analyze(); };
-              chipsEl.appendChild(btn);
+          // Resources — real external links for this specific question
+          const resourcesEl    = document.getElementById('deeperResources');
+          const resourcesLabel = document.getElementById('deeperResourcesLabel');
+          resourcesEl.innerHTML = '';
+          if (data.resources && data.resources.length) {
+            data.resources.forEach(r => {
+              let domain = '';
+              try { domain = new URL(r.url).hostname.replace('www.', ''); } catch {}
+              const a = document.createElement('a');
+              a.className = 'deeper-resource';
+              a.href      = r.url;
+              a.target    = '_blank';
+              a.rel       = 'noopener noreferrer';
+              a.innerHTML = `<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.title}</span><span class="deeper-resource-source">${domain}</span>`;
+              resourcesEl.appendChild(a);
             });
+            resourcesLabel.style.display = '';
+          } else {
+            resourcesLabel.style.display = 'none';
           }
+
           learnMoreEl.classList.remove('hidden');
         } catch {
           answerEl.textContent = 'Something went wrong. Try again.';
@@ -1651,7 +1698,7 @@
         } finally {
           stopLoadingPhrases();
           btn.disabled = false;
-          btn.textContent = 'Go';
+          btn.textContent = 'Learn';
         }
       }
 
