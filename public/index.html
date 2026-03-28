@@ -1843,7 +1843,7 @@
       }
 
       function selectAnim(id) {
-        const orb = document.querySelector('.orb');
+        const orb     = document.querySelector('.orb');
         const overlay = document.getElementById('eclipseOverlay');
 
         // Clear all inline overrides so CSS defaults (orbit) can resume
@@ -1888,7 +1888,7 @@
             break;
 
           case 'eclipse':
-            orb.style.animation = 'eclipseOrb 38s cubic-bezier(0.45, 0, 0.55, 1) infinite';
+            orb.style.animation  = 'eclipseOrb 38s cubic-bezier(0.45, 0, 0.55, 1) infinite';
             overlay.style.display = 'block';
             initEclipseStars();
             document.getElementById('siteTitle').classList.add('eclipse-title-fade');
