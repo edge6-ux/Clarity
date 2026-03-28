@@ -3,6 +3,14 @@ const express = require("express");
 const multer = require("multer");
 const OpenAI = require("openai");
 const path = require("path");
+const fs = require("fs");
+
+// Encode logo at startup so it survives Vercel's serverless bundling
+let CLARITY_IMAGE_URL = '/clarity4.png';
+try {
+  const buf = fs.readFileSync(path.join(__dirname, 'public/clarity4.png'));
+  CLARITY_IMAGE_URL = `data:image/png;base64,${buf.toString('base64')}`;
+} catch (_) { /* fall back to path if file unreadable */ }
 
 const app = express();
 app.use(express.json());
@@ -279,7 +287,7 @@ app.post("/analyze", rateLimiter, upload.single("file"), async (req, res) => {
         ],
       });
       const prodResult = prodResponse.choices[0]?.message?.content ?? "";
-      return res.json({ topic, result: prodResult, image: '/clarity4.png', reddit: [], articles: [] });
+      return res.json({ topic, result: prodResult, image: CLARITY_IMAGE_URL, reddit: [], articles: [] });
     } catch (err) {
       console.error(err);
       return res.status(500).json({ error: "Something went wrong. Try again." });
