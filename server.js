@@ -337,21 +337,35 @@ app.post("/analyze", rateLimiter, upload.single("file"), async (req, res) => {
       userContent.push({ type: "text", text: userText });
     }
 
-    // Run all lookups in parallel — no added latency
-    const [aiResponse, image, redditPosts, hnArticles, newsArticles, zhArticles] = await Promise.all([
-      client.chat.completions.create({
-        model: "gpt-4o-mini",
-        max_tokens: 1024,
-        messages: [
-          { role: "system", content: CLARITY_SYSTEM_PROMPT },
-          { role: "user", content: userContent },
-        ],
-      }),
-      fetchWikipediaImage(topic),
+    // Phase 1: fetch articles in parallel (fast RSS/Reddit calls)
+    const [redditPosts, hnArticles, newsArticles, zhArticles] = await Promise.all([
       fetchRedditPosts(topic),
       fetchHackerNewsArticles(topic),
       fetchGoogleNewsArticles(topic),
       fetchZeroHedgeArticles(topic),
+    ]);
+
+    // Build recent headlines context for the AI
+    const recentHeadlines = [...newsArticles.slice(0, 3), ...hnArticles.slice(0, 2)]
+      .filter(a => a.title)
+      .map(a => `- ${a.title}`)
+      .join('\n');
+
+    const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const systemPrompt = `${CLARITY_SYSTEM_PROMPT}\n\nToday's date: ${today}. Use this to ground the "Why now" section in current timing.`
+      + (recentHeadlines ? `\n\nRecent headlines on this topic:\n${recentHeadlines}\n\nUse these to inform the "Why now" section. Do not cite or link them directly.` : '');
+
+    // Phase 2: AI + Wikipedia in parallel (AI now has date + article context)
+    const [aiResponse, image] = await Promise.all([
+      client.chat.completions.create({
+        model: "gpt-4o-mini",
+        max_tokens: 1024,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userContent },
+        ],
+      }),
+      fetchWikipediaImage(topic),
     ]);
 
     const text = aiResponse.choices[0]?.message?.content ?? "";
