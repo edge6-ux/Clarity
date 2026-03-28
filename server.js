@@ -241,7 +241,7 @@ app.post("/analyze", upload.single("file"), async (req, res) => {
         ],
       });
       const prodResult = prodResponse.choices[0]?.message?.content ?? "";
-      return res.json({ topic, result: prodResult, image: '/clarity3.png', reddit: [], articles: [] });
+      return res.json({ topic, result: prodResult, image: '/clarity4.png', reddit: [], articles: [] });
     } catch (err) {
       console.error(err);
       return res.status(500).json({ error: "Something went wrong. Try again." });
