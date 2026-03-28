@@ -358,8 +358,9 @@ app.post("/analyze", rateLimiter, upload.single("file"), async (req, res) => {
     // Phase 2: AI + Wikipedia in parallel (AI now has date + article context)
     const [aiResponse, image] = await Promise.all([
       client.chat.completions.create({
-        model: "gpt-4o-mini",
-        max_tokens: 1024,
+        model: "gpt-4o",
+        max_tokens: 1400,
+        temperature: 0.6,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userContent },
