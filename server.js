@@ -474,9 +474,17 @@ async function fetchGoogleTopStories() {
   } catch { return []; }
 }
 
+// Only fetch ZeroHedge for finance / politics / markets / geopolitics topics.
+const ZH_TOPIC_RE = /\b(stock|market|invest|fund|etf|bond|yield|rate|inflation|deflation|recession|gdp|economy|economic|fiscal|monetary|fed|federal reserve|bank|banking|crypto|bitcoin|ethereum|gold|silver|oil|commodity|commodities|dollar|currency|forex|debt|deficit|surplus|budget|trade|tariff|sanction|politics|political|election|vote|congress|senate|president|democrat|republican|policy|legislation|regulation|government|tax|taxes|war|military|nato|ukraine|russia|china|iran|israel|geopolit|wall street|hedge fund|private equity|venture capital|interest rate|central bank)\b/i;
+
+function isZeroHedgeTopic(topic) {
+  return ZH_TOPIC_RE.test(topic);
+}
+
 // Fetch ZeroHedge articles relevant to a topic via their RSS feed + keyword matching.
 // Returns array of { title, url, source } or [] — never throws.
 async function fetchZeroHedgeArticles(topic) {
+  if (!isZeroHedgeTopic(topic)) return [];
   const STOP = new Set(["the","a","an","and","or","of","in","on","at","to","for",
     "with","is","are","was","were","be","been","how","what","why","who","does","do",
     "explain","describe","tell","me","about","define"]);
