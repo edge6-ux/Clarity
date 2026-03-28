@@ -1792,7 +1792,7 @@
         if (shootingStarInterval) { clearInterval(shootingStarInterval); shootingStarInterval = null; }
         shootingStars = [];
         document.getElementById('siteTitle').classList.remove('eclipse-title-fade');
-        document.getElementById('siteTagline').classList.remove('eclipse-title-fade');
+        document.getElementById('siteTagline')?.classList.remove('eclipse-title-fade');
         const starsCanvas = document.getElementById('eclipseStars');
         starsCanvas.style.display = 'none';
         starsCanvas.style.animation = 'none';
@@ -1832,7 +1832,7 @@
             overlay.style.display = 'block';
             initEclipseStars();
             document.getElementById('siteTitle').classList.add('eclipse-title-fade');
-            document.getElementById('siteTagline').classList.add('eclipse-title-fade');
+            document.getElementById('siteTagline')?.classList.add('eclipse-title-fade');
             break;
 
           case 'starrynight':
