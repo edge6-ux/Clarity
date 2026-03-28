@@ -865,6 +865,42 @@
         filter: blur(4px);
         opacity: 0.35;
       }
+      @keyframes previewTwinkle {
+        0%, 100% { opacity: 0.75; }
+        50%      { opacity: 1.0;  }
+      }
+      .preview-starrynight::after {
+        content: "";
+        position: absolute; top: 0; left: 0;
+        width: 1px; height: 1px;
+        animation: previewTwinkle 3.5s ease-in-out infinite;
+        box-shadow:
+          6px  9px 0 rgba(255,255,255,0.70),
+          14px  4px 0 rgba(220,235,255,0.55),
+          23px 17px 0 rgba(200,220,255,0.75),
+          32px  7px 0 rgba(255,255,255,0.40),
+          40px 21px 0 rgba(255,240,150,0.55),
+          49px 11px 0 rgba(220,235,255,0.65),
+          57px  5px 0 rgba(255,255,255,0.45),
+          65px 18px 0 rgba(180,210,255,0.70),
+           9px 29px 0 rgba(200,220,255,0.50),
+          19px 37px 0 rgba(255,255,255,0.80),
+          28px 44px 0 rgba(220,235,255,0.40),
+          36px 31px 0 rgba(255,100,60,0.45),
+          45px 40px 0 rgba(255,255,255,0.60),
+          54px 27px 0 rgba(200,220,255,0.55),
+          62px 43px 0 rgba(255,240,150,0.40),
+          69px 33px 0 rgba(220,235,255,0.65),
+           4px 49px 0 rgba(255,255,255,0.35),
+          13px 53px 0 rgba(180,210,255,0.55),
+          22px 47px 0 rgba(255,255,255,0.50),
+          31px 54px 0 rgba(220,235,255,0.60),
+          42px 50px 0 rgba(255,255,255,0.30),
+          52px 56px 0 rgba(200,220,255,0.50),
+          60px 51px 0 rgba(255,255,255,0.55),
+          68px 47px 0 rgba(180,210,255,0.40),
+          26px 24px 0 rgba(255,255,255,0.85);
+      }
 
       /* ─── Fullscreen button ─────────────────────────────────────────── */
       #fullscreenBtn {
