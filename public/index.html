@@ -1487,9 +1487,9 @@
           [100, 255, 140],   // greenish
         ];
 
-        // Orb exclusion zone — gradient fades to transparent at 68% of 37.5vmax radius
+        // Orb exclusion zone — void is 100vmin, visible to ~80% of radius
         const cx = w / 2, cy = h / 2;
-        const orbExclude = Math.max(w, h) * 0.29; // slight buffer beyond visible gradient edge
+        const orbExclude = Math.min(w, h) * 0.38; // based on vmin to match void sizing
 
         function eclipseStarPos() {
           let x, y;
