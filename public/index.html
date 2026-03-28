@@ -987,10 +987,6 @@
       <!-- Header -->
       <div class="mb-12 text-center fade-in-up" style="animation-delay:0s">
         <h1 id="siteTitle" class="text-5xl tracking-tight title-gradient mb-4" style="font-family:'Cormorant Garamond',serif;font-weight:600;letter-spacing:0.02em;opacity:0.72;cursor:pointer" onclick="resetUI()">Clarity</h1>
-        <span id="siteTagline" style="display:inline-flex;align-items:center;gap:6px;background:rgba(176,96,255,0.12);border:1px solid rgba(176,96,255,0.28);border-radius:999px;padding:4px 14px;font-size:0.72rem;color:rgba(255,255,255,0.55);letter-spacing:0.05em;font-weight:500">
-          <span style="width:6px;height:6px;border-radius:50%;background:var(--btn-from);box-shadow:0 0 6px var(--btn-glow);flex-shrink:0"></span>
-          Any topic. Understood in 60 seconds.
-        </span>
       </div>
 
       <!-- Input card -->
@@ -2218,8 +2214,10 @@
             readTime.textContent = estimateReadTime(data.result);
             saveToHistory(topic, data.result.replace(/[#*`]/g, '').trim());
             if (data.image) {
+              resultImage.classList.add('hidden');
+              resultImage.onload  = () => resultImage.classList.remove('hidden');
+              resultImage.onerror = () => resultImage.classList.add('hidden');
               resultImage.src = data.image;
-              resultImage.classList.remove('hidden');
             } else {
               resultImage.classList.add('hidden');
             }
