@@ -11,6 +11,40 @@ app.use(express.static(path.join(__dirname, "public")));
 const client = new OpenAI.default({ apiKey: process.env.OPENAI_API_KEY });
 const upload = multer({ storage: multer.memoryStorage() });
 
+/* ── IP rate limiter: 20 requests per hour ───────────────────────────── */
+const RATE_LIMIT    = 20;
+const RATE_WINDOW   = 60 * 60 * 1000; // 1 hour in ms
+const ipRequests    = new Map();
+
+function rateLimiter(req, res, next) {
+  const ip  = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress;
+  const now = Date.now();
+  const entry = ipRequests.get(ip);
+
+  if (!entry || now > entry.resetAt) {
+    ipRequests.set(ip, { count: 1, resetAt: now + RATE_WINDOW });
+    return next();
+  }
+
+  if (entry.count >= RATE_LIMIT) {
+    const retryAfter = Math.ceil((entry.resetAt - now) / 1000 / 60);
+    return res.status(429).json({
+      error: `You've reached the limit of ${RATE_LIMIT} searches per hour. Try again in ${retryAfter} minute${retryAfter === 1 ? '' : 's'}.`
+    });
+  }
+
+  entry.count++;
+  next();
+}
+
+// Prune stale entries every 30 minutes to keep memory clean
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, entry] of ipRequests) {
+    if (now > entry.resetAt) ipRequests.delete(ip);
+  }
+}, 30 * 60 * 1000);
+
 const CLARITY_SYSTEM_PROMPT = `You are Clarity, an AI that turns any topic into clear, structured understanding in under 60 seconds.
 
 Your job is NOT to dump information or write long explanations.
@@ -220,7 +254,7 @@ STYLE RULES:
 - Slightly vary wording each time while keeping meaning consistent
 - Do not repeat identical phrasing across responses`;
 
-app.post("/analyze", upload.single("file"), async (req, res) => {
+app.post("/analyze", rateLimiter, upload.single("file"), async (req, res) => {
   const topic = req.body.topic?.trim();
   const context = req.body.context?.trim();
   const file = req.file;
@@ -519,7 +553,7 @@ async function fetchRedditPosts(topic) {
   }
 }
 
-app.post("/followup", async (req, res) => {
+app.post("/followup", rateLimiter, async (req, res) => {
   const { topic, question } = req.body;
   if (!topic || !question) return res.status(400).json({ error: "Missing topic or question." });
 

@@ -1929,13 +1929,18 @@
         return Math.floor(s / 86400) + 'd ago';
       }
 
+      const CLARITY_CHIP_HTML = `
+        <div style="padding:8px 12px 4px">
+          <button onclick="rerunTopic('What is Clarity')" style="display:inline-flex;align-items:center;gap:5px;background:rgba(176,96,255,0.10);border:1px solid rgba(176,96,255,0.28);border-radius:999px;padding:3px 10px;font-size:0.68rem;color:rgba(176,96,255,0.80);cursor:pointer;transition:background 0.15s">✦ What is Clarity</button>
+        </div>`;
+
       function renderHistoryItems(items) {
         const list = document.getElementById('historyList');
         if (!items.length) {
           list.innerHTML = '<div class="history-empty">Your recent topics<br>will appear here</div>';
           return;
         }
-        list.innerHTML = items.map(h => `
+        list.innerHTML = CLARITY_CHIP_HTML + items.map(h => `
           <div class="history-item" onclick="rerunTopic(${JSON.stringify(h.topic)})">
             <div style="flex:1;min-width:0">
               <div class="history-item-topic">${h.topic}</div>
@@ -1965,7 +1970,7 @@
               const tl = document.getElementById('trendingList');
               if (!tl) return;
               if (!articles.length) { tl.innerHTML = '<div class="history-empty">Nothing trending right now</div>'; return; }
-              tl.innerHTML = articles.map(a => `
+              tl.innerHTML = CLARITY_CHIP_HTML + articles.map(a => `
                 <a class="trending-item" href="${a.url}" target="_blank" rel="noopener noreferrer">
                   ${a.image
                     ? `<img class="trending-thumb" src="${a.image}" alt="" loading="lazy" onerror="this.style.display='none'">`
