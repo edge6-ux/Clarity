@@ -2166,6 +2166,8 @@
         output.classList.add('hidden');
         resultCard.classList.add('hidden');
         result.innerHTML = '';
+        resultImage.onload  = null;
+        resultImage.onerror = null;
         resultImage.classList.add('hidden');
         resultImage.src = '';
         topicInput.value = AUTOFILL;
@@ -2294,10 +2296,13 @@
             saveToHistory(topic, data.result.replace(/[#*`]/g, '').trim());
             if (data.image) {
               resultImage.classList.add('hidden');
-              resultImage.src = '';
               resultImage.onload  = () => resultImage.classList.remove('hidden');
               resultImage.onerror = () => resultImage.classList.add('hidden');
               resultImage.src = data.image;
+              // If already cached, onload won't fire — show immediately
+              if (resultImage.complete && resultImage.naturalWidth > 0) {
+                resultImage.classList.remove('hidden');
+              }
             } else {
               resultImage.classList.add('hidden');
             }

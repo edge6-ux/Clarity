@@ -203,6 +203,10 @@ const CLARITY_PRODUCT_TRIGGERS = [
   /^(explain|describe)\s+clarity(\?)?$/i,
   /^clarity\s+app(\?)?$/i,
   /^ineedclarity(\?)?$/i,
+  /^who\s+(made|built|created)\s+clarity(\?)?$/i,
+  /^how\s+does\s+clarity\s+work(\?)?$/i,
+  /^clarity\s+ai(\?)?$/i,
+  /^about\s+clarity(\?)?$/i,
 ];
 
 // Concept qualifiers override product detection (e.g. "clarity in writing")
