@@ -9,7 +9,7 @@
     <!-- Open Graph / link preview -->
     <meta property="og:title" content="Clarity" />
     <meta property="og:description" content="Learn something new today with Clarity" />
-    <meta property="og:image" content="https://ineedclarity.net/clarity3.png" />
+    <meta property="og:image" content="https://ineedclarity.net/clarity4.png" />
     <meta property="og:url" content="https://ineedclarity.net/" />
     <meta property="og:type" content="website" />
 
@@ -17,10 +17,10 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Clarity" />
     <meta name="twitter:description" content="Learn something new today with Clarity" />
-    <meta name="twitter:image" content="https://ineedclarity.net/clarity3.png" />
+    <meta name="twitter:image" content="https://ineedclarity.net/clarity4.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@700&family=Dancing+Script:wght@400;500&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@700&family=Cormorant+Garamond:wght@600;700&display=swap" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       /* ─── Accent tokens (overridden per theme) ─────────────────────── */
@@ -272,8 +272,8 @@
         to   { opacity: 0; }
       }
       #splashTitle {
-        font-family: 'Space Grotesk', sans-serif; font-weight: 700;
-        font-size: 2.4rem; letter-spacing: -0.01em;
+        font-family: 'Cormorant Garamond', serif; font-weight: 600;
+        font-size: 2.4rem; letter-spacing: 0.12em;
         margin-top: 14px;
         opacity: 0;
         animation: splashItemIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.4s forwards;
@@ -969,7 +969,7 @@
 
       <!-- Header -->
       <div class="mb-12 text-center fade-in-up" style="animation-delay:0s">
-        <h1 id="siteTitle" class="text-5xl tracking-tight title-gradient mb-4" style="font-family:'Space Grotesk',sans-serif;font-weight:700;opacity:0.72;cursor:pointer" onclick="resetUI()">Clarity</h1>
+        <h1 id="siteTitle" class="text-5xl tracking-tight title-gradient mb-4" style="font-family:'Cormorant Garamond',serif;font-weight:600;letter-spacing:0.12em;opacity:0.72;cursor:pointer" onclick="resetUI()">Clarity</h1>
         <span id="siteTagline" style="display:inline-flex;align-items:center;gap:6px;background:rgba(176,96,255,0.12);border:1px solid rgba(176,96,255,0.28);border-radius:999px;padding:4px 14px;font-size:0.72rem;color:rgba(255,255,255,0.55);letter-spacing:0.05em;font-weight:500">
           <span style="width:6px;height:6px;border-radius:50%;background:var(--btn-from);box-shadow:0 0 6px var(--btn-glow);flex-shrink:0"></span>
           Any topic. Understood in 60 seconds.
@@ -996,6 +996,7 @@
           <!-- Example chips -->
           <div class="flex flex-wrap items-center gap-2">
             <span class="text-xs text-white/20 font-light">Try:</span>
+            <button class="chip px-3 py-1 rounded-full" onclick="setTopic('What is Clarity')" style="border-color:rgba(176,96,255,0.28);color:rgba(176,96,255,0.75)">✦ Clarity</button>
             <button class="chip px-3 py-1 rounded-full" onclick="setTopic('Quantum entanglement')">Quantum entanglement</button>
             <button class="chip px-3 py-1 rounded-full" onclick="setTopic('Explain black holes')">Black holes</button>
             <button class="chip px-3 py-1 rounded-full" onclick="setTopic('CRISPR gene editing')">CRISPR</button>
