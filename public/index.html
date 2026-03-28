@@ -1516,8 +1516,9 @@
           return { x, y };
         }
 
+        const isMobile = window.innerWidth <= 768;
         // Generate stars with independent twinkle params, positions in CSS px space
-        starData = Array.from({ length: 300 }, () => {
+        starData = Array.from({ length: isMobile ? 180 : 300 }, () => {
           const [r, g, b] = starColors[Math.floor(Math.random() * starColors.length)];
           const mag = Math.random();
           const bright = mag > 0.90, medium = mag > 0.60;
@@ -1612,14 +1613,16 @@
             ctx.lineWidth = 1.5;
             ctx.stroke();
 
-            const glow = ctx.createRadialGradient(headX, headY, 0, headX, headY, 3);
-            glow.addColorStop(0,   `rgba(255, 255, 255, ${0.50 * alpha})`);
-            glow.addColorStop(0.4, `rgba(200, 225, 255, ${0.22 * alpha})`);
-            glow.addColorStop(1,   `rgba(180, 210, 255, 0)`);
-            ctx.beginPath();
-            ctx.arc(headX, headY, 3, 0, Math.PI * 2);
-            ctx.fillStyle = glow;
-            ctx.fill();
+            if (!isMobile) {
+              const glow = ctx.createRadialGradient(headX, headY, 0, headX, headY, 3);
+              glow.addColorStop(0,   `rgba(255, 255, 255, ${0.50 * alpha})`);
+              glow.addColorStop(0.4, `rgba(200, 225, 255, ${0.22 * alpha})`);
+              glow.addColorStop(1,   `rgba(180, 210, 255, 0)`);
+              ctx.beginPath();
+              ctx.arc(headX, headY, 3, 0, Math.PI * 2);
+              ctx.fillStyle = glow;
+              ctx.fill();
+            }
           }
 
           starLoopId = requestAnimationFrame(drawStars);
@@ -1662,7 +1665,8 @@
           [100, 255, 140],   // greenish
         ];
 
-        starData = Array.from({ length: 500 }, () => {
+        const isMobile = window.innerWidth <= 768;
+        starData = Array.from({ length: isMobile ? 280 : 500 }, () => {
           const [r, g, b] = starColors[Math.floor(Math.random() * starColors.length)];
           const mag = Math.random();
           const bright = mag > 0.90, medium = mag > 0.60;
@@ -1760,15 +1764,17 @@
             ctx.lineWidth = 1.5;
             ctx.stroke();
 
-            // Glowing nucleus at head
-            const glow = ctx.createRadialGradient(headX, headY, 0, headX, headY, 3);
-            glow.addColorStop(0,   `rgba(255, 255, 255, ${0.50 * alpha})`);
-            glow.addColorStop(0.4, `rgba(200, 225, 255, ${0.22 * alpha})`);
-            glow.addColorStop(1,   `rgba(180, 210, 255, 0)`);
-            ctx.beginPath();
-            ctx.arc(headX, headY, 3, 0, Math.PI * 2);
-            ctx.fillStyle = glow;
-            ctx.fill();
+            // Glowing nucleus at head (skip on mobile for perf)
+            if (!isMobile) {
+              const glow = ctx.createRadialGradient(headX, headY, 0, headX, headY, 3);
+              glow.addColorStop(0,   `rgba(255, 255, 255, ${0.50 * alpha})`);
+              glow.addColorStop(0.4, `rgba(200, 225, 255, ${0.22 * alpha})`);
+              glow.addColorStop(1,   `rgba(180, 210, 255, 0)`);
+              ctx.beginPath();
+              ctx.arc(headX, headY, 3, 0, Math.PI * 2);
+              ctx.fillStyle = glow;
+              ctx.fill();
+            }
           }
 
           starLoopId = requestAnimationFrame(drawStars);
@@ -2051,6 +2057,11 @@
         const btn      = document.getElementById('fullscreenBtn');
         const expand   = document.getElementById('fsExpand');
         const compress = document.getElementById('fsCompress');
+
+        if (!document.fullscreenEnabled) {
+          btn.style.display = 'none';
+          return;
+        }
 
         btn.addEventListener('click', () => {
           if (!document.fullscreenElement) {
