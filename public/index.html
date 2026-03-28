@@ -804,7 +804,7 @@
       }
 
       /* ─── Storm ─────────────────────────────────────────────────────── */
-      #stormContainer { position:fixed; inset:0; pointer-events:none; z-index:1; display:none; }
+      #stormContainer { position:fixed; inset:0; pointer-events:none; z-index:1; display:none; background:#02030d; }
 
       @keyframes rollCloud {
         from { transform: translateX(110vw); }
@@ -1005,6 +1005,8 @@
 
       <!-- Flash overlay -->
       <div id="lightningFlash"></div>
+      <!-- Rain canvas -->
+      <canvas id="stormRain" style="position:absolute;inset:0;pointer-events:none;"></canvas>
     </div>
 
     <!-- Fullscreen toggle -->
@@ -1288,7 +1290,7 @@
         { id: 'static',  name: 'Static',  previewClass: 'preview-static'  },
         { id: 'eclipse',     name: 'Eclipse',      previewClass: 'preview-eclipse'     },
         { id: 'starrynight', name: 'Starry Night', previewClass: 'preview-starrynight' },
-        { id: 'storm',       name: 'Storm',        previewClass: 'preview-storm', soon: true },
+        { id: 'storm',       name: 'Storm',        previewClass: 'preview-storm' },
       ];
 
       /* ── Supabase ────────────────────────────────────────────────────── */
@@ -1446,6 +1448,7 @@
       let shootingStars        = [];
       let shootingStarTimeout  = null;
       let shootingStarInterval = null;
+      let rainLoopId           = null;
 
       function triggerFlash() {
         const flash = document.getElementById('lightningFlash');
@@ -1796,20 +1799,69 @@
         canvas.style.opacity = '1';
       }
 
-      // Reinitialize stars on orientation change / resize while eclipse/starrynight is active
+      // Reinitialize stars/rain on orientation change / resize
       window.addEventListener('resize', () => {
-        if (currentAnim === 'eclipse' && starLoopId) initEclipseStars();
-        if (currentAnim === 'starrynight' && starLoopId) initStarryNightStars();
+        if (currentAnim === 'eclipse'     && starLoopId)  initEclipseStars();
+        if (currentAnim === 'starrynight' && starLoopId)  initStarryNightStars();
+        if (currentAnim === 'storm'       && rainLoopId)  initStormRain();
       });
+
+      function initStormRain() {
+        const canvas = document.getElementById('stormRain');
+        const dpr = window.devicePixelRatio || 1;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        canvas.width  = w * dpr;
+        canvas.height = h * dpr;
+        canvas.style.width  = w + 'px';
+        canvas.style.height = h + 'px';
+
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+
+        const drops = Array.from({ length: 180 }, () => ({
+          x:      Math.random() * (w + 200) - 100,
+          y:      Math.random() * h,
+          len:    Math.random() * 22 + 12,
+          speed:  Math.random() * 6 + 8,
+          opacity: Math.random() * 0.12 + 0.06,
+        }));
+
+        function drawRain() {
+          ctx.clearRect(0, 0, w, h);
+          ctx.strokeStyle = 'rgba(180, 210, 240, 1)';
+          ctx.lineWidth = 0.6;
+          for (const d of drops) {
+            ctx.globalAlpha = d.opacity;
+            ctx.beginPath();
+            ctx.moveTo(d.x, d.y);
+            ctx.lineTo(d.x - d.len * 0.18, d.y + d.len); // slight wind lean
+            ctx.stroke();
+            d.y += d.speed;
+            d.x -= d.speed * 0.18;
+            if (d.y > h + 20) {
+              d.y = -d.len;
+              d.x = Math.random() * (w + 200) - 100;
+            }
+          }
+          ctx.globalAlpha = 1;
+          rainLoopId = requestAnimationFrame(drawRain);
+        }
+
+        if (rainLoopId) cancelAnimationFrame(rainLoopId);
+        rainLoopId = requestAnimationFrame(drawRain);
+      }
 
       function startStorm() {
         document.getElementById('stormContainer').style.display = 'block';
+        initStormRain();
         stormTimeout = setTimeout(triggerFlash, 1000 + Math.random() * 3000);
       }
 
       function stopStorm() {
         clearTimeout(stormTimeout);
         stormTimeout = null;
+        if (rainLoopId) { cancelAnimationFrame(rainLoopId); rainLoopId = null; }
         document.getElementById('stormContainer').style.display = 'none';
       }
 
