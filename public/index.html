@@ -91,17 +91,17 @@
         /* void approaching — start dimming */
         30%       { transform: translate(-50%,-50%) scale(0.88); opacity: 0.65; }
         /* void fully over orb — consumed */
-        45%, 55%  { transform: translate(-50%,-50%) scale(0.72); opacity: 0.28; }
+        43%, 63%  { transform: translate(-50%,-50%) scale(0.72); opacity: 0.28; }
         /* void clearing — reignite flare */
-        68%       { transform: translate(-50%,-50%) scale(1.18); opacity: 1.00; }
+        74%       { transform: translate(-50%,-50%) scale(1.18); opacity: 1.00; }
         /* settle back */
-        82%, 100% { transform: translate(-50%,-50%) scale(0.92); opacity: 0.80; }
+        86%, 100% { transform: translate(-50%,-50%) scale(0.92); opacity: 0.80; }
       }
       @keyframes eclipseSweep {
         /* start off-screen right */
         0%        { transform: translate(calc(-50% + 100vmin), -50%); opacity: 1; }
         /* sweep to center */
-        45%, 55%  { transform: translate(-50%, -50%);                 opacity: 1; }
+        43%, 63%  { transform: translate(-50%, -50%);                 opacity: 1; }
         /* exit off-screen left */
         95%       { transform: translate(calc(-50% - 100vmin), -50%); opacity: 1; }
         /* fade out just before loop restart to hide the jump */
@@ -119,17 +119,17 @@
       }
       @keyframes eclipseTitleFade {
         0%, 10%   { opacity: 0.72; }
-        45%, 55%  { opacity: 0;    }
-        70%, 100% { opacity: 0.72; }
+        43%, 63%  { opacity: 0;    }
+        76%, 100% { opacity: 0.72; }
       }
       .eclipse-title-fade {
         animation: eclipseTitleFade 38s cubic-bezier(0.45, 0, 0.55, 1) infinite;
       }
 
       @keyframes eclipseStarsFade {
-        0%, 38%   { opacity: 0; }
-        47%, 53%  { opacity: 1; }
-        65%, 100% { opacity: 0; }
+        0%, 36%   { opacity: 0; }
+        45%, 61%  { opacity: 1; }
+        70%, 100% { opacity: 0; }
       }
       #eclipseStars {
         position: fixed; inset: 0;
@@ -1468,44 +1468,69 @@
         const ctx = canvas.getContext('2d');
         ctx.scale(dpr, dpr); // all draw calls now use CSS pixel coords
 
-        // Star color palette: white, warm yellow, blue-white, red/orange, faint green
+        // Star color palette: blues weighted heavily like a real night sky
         const starColors = [
+          [220, 235, 255],   // light blue-white
+          [220, 235, 255],   // light blue-white
+          [200, 220, 255],   // light blue
+          [200, 220, 255],   // light blue
+          [180, 210, 255],   // soft blue
+          [150, 195, 255],   // medium blue
+          [130, 185, 255],   // blue-white
+          [ 80, 140, 255],   // deep blue
           [255, 255, 255],   // white
-          [255, 255, 255],   // white (weighted higher)
-          [255, 255, 255],   // white (weighted higher)
+          [255, 255, 255],   // white
           [255, 235,  90],   // warm yellow
           [255, 200,  40],   // golden yellow
-          [130, 185, 255],   // blue-white
-          [ 80, 140, 255],   // blue
           [255, 100,  60],   // red-orange
           [255,  50,  40],   // red
           [100, 255, 140],   // greenish
         ];
 
+        // Orb exclusion zone — gradient fades to transparent at 68% of 37.5vmax radius
+        const cx = w / 2, cy = h / 2;
+        const orbExclude = Math.max(w, h) * 0.29; // slight buffer beyond visible gradient edge
+
+        function eclipseStarPos() {
+          let x, y;
+          do { x = Math.random() * w; y = Math.random() * h; }
+          while (Math.hypot(x - cx, y - cy) < orbExclude);
+          return { x, y };
+        }
+
         // Generate stars with independent twinkle params, positions in CSS px space
-        starData = Array.from({ length: 90 }, () => {
+        starData = Array.from({ length: 300 }, () => {
           const [r, g, b] = starColors[Math.floor(Math.random() * starColors.length)];
-          const persistent = Math.random() < 0.55;
+          const mag = Math.random();
+          const bright = mag > 0.90, medium = mag > 0.60;
+          const { x, y } = eclipseStarPos();
           return {
-            x:     Math.random() * w,
-            y:     Math.random() * h,
-            r:     Math.random() * 0.9 + 0.2,
-            base:  persistent ? Math.random() * 0.20 + 0.28 : Math.random() * 0.18 + 0.10,
-            amp:   persistent ? Math.random() * 0.04 + 0.01 : Math.random() * 0.18 + 0.08,
-            speed: persistent ? Math.random() * 0.4  + 0.1  : Math.random() * 1.2  + 0.4,
+            x, y,
+            r:     bright ? Math.random() * 0.55 + 0.75
+                 : medium ? Math.random() * 0.35 + 0.40
+                 :          Math.random() * 0.25 + 0.10,
+            base:  bright ? Math.random() * 0.20 + 0.45
+                 : medium ? Math.random() * 0.15 + 0.22
+                 :          Math.random() * 0.10 + 0.05,
+            amp:   bright ? Math.random() * 0.06 + 0.02
+                 : medium ? Math.random() * 0.08 + 0.02
+                 :          Math.random() * 0.05 + 0.01,
+            speed: Math.random() * 0.8 + 0.2,
             phase: Math.random() * Math.PI * 2,
             cr: r, cg: g, cb: b,
           };
-        }).concat(Array.from({ length: 12 }, () => ({
-          x:     Math.random() * w,
-          y:     Math.random() * h,
-          r:     Math.random() * 0.5 + 0.1,
-          base:  Math.random() * 0.10 + 0.06,
-          amp:   Math.random() * 0.03 + 0.01,
-          speed: Math.random() * 0.3  + 0.1,
-          phase: Math.random() * Math.PI * 2,
-          cr: 255, cg: 255, cb: 255,
-        })));
+        }).concat(Array.from({ length: 12 }, () => {
+          const { x, y } = eclipseStarPos();
+          return {
+            x, y,
+            r:     Math.random() * 0.5 + 0.1,
+            base:  Math.random() * 0.10 + 0.06,
+            amp:   Math.random() * 0.03 + 0.01,
+            speed: Math.random() * 0.3  + 0.1,
+            phase: Math.random() * Math.PI * 2,
+            cr: 255, cg: 255, cb: 255,
+          };
+        }));
 
         shootingStars = [];
 
@@ -1602,28 +1627,40 @@
         ctx.scale(dpr, dpr);
 
         const starColors = [
-          [255, 255, 255],
-          [255, 255, 255],
-          [255, 255, 255],
-          [255, 235,  90],
-          [255, 200,  40],
-          [130, 185, 255],
-          [ 80, 140, 255],
-          [255, 100,  60],
-          [255,  50,  40],
-          [100, 255, 140],
+          [220, 235, 255],   // light blue-white
+          [220, 235, 255],   // light blue-white
+          [200, 220, 255],   // light blue
+          [200, 220, 255],   // light blue
+          [180, 210, 255],   // soft blue
+          [150, 195, 255],   // medium blue
+          [130, 185, 255],   // blue-white
+          [ 80, 140, 255],   // deep blue
+          [255, 255, 255],   // white
+          [255, 255, 255],   // white
+          [255, 235,  90],   // warm yellow
+          [255, 200,  40],   // golden yellow
+          [255, 100,  60],   // red-orange
+          [255,  50,  40],   // red
+          [100, 255, 140],   // greenish
         ];
 
-        starData = Array.from({ length: 220 }, () => {
+        starData = Array.from({ length: 500 }, () => {
           const [r, g, b] = starColors[Math.floor(Math.random() * starColors.length)];
-          const persistent = Math.random() < 0.55;
+          const mag = Math.random();
+          const bright = mag > 0.90, medium = mag > 0.60;
           return {
             x:     Math.random() * w,
             y:     Math.random() * h,
-            r:     Math.random() * 0.85 + 0.15,
-            base:  persistent ? Math.random() * 0.20 + 0.28 : Math.random() * 0.18 + 0.10,
-            amp:   persistent ? Math.random() * 0.04 + 0.01 : Math.random() * 0.18 + 0.08,
-            speed: persistent ? Math.random() * 0.4  + 0.1  : Math.random() * 1.2  + 0.4,
+            r:     bright ? Math.random() * 0.55 + 0.75
+                 : medium ? Math.random() * 0.35 + 0.40
+                 :          Math.random() * 0.25 + 0.10,
+            base:  bright ? Math.random() * 0.20 + 0.45
+                 : medium ? Math.random() * 0.15 + 0.22
+                 :          Math.random() * 0.10 + 0.05,
+            amp:   bright ? Math.random() * 0.06 + 0.02
+                 : medium ? Math.random() * 0.08 + 0.02
+                 :          Math.random() * 0.05 + 0.01,
+            speed: Math.random() * 0.8 + 0.2,
             phase: Math.random() * Math.PI * 2,
             cr: r, cg: g, cb: b,
           };
