@@ -111,7 +111,7 @@
         position: fixed; width: 100vmin; height: 100vmin;
         top: 50%; left: 50%;
         border-radius: 50%;
-        background: radial-gradient(circle at 50% 50%, rgba(0,0,0,0.82) 28%, rgba(0,0,0,0.55) 48%, rgba(0,0,0,0.2) 66%, transparent 80%);
+        background: radial-gradient(circle at 50% 50%, rgba(0,0,0,0.58) 28%, rgba(0,0,0,0.35) 48%, rgba(0,0,0,0.12) 66%, transparent 80%);
         pointer-events: none; z-index: 2;
         display: none;
         animation: eclipseSweep 38s cubic-bezier(0.45, 0, 0.55, 1) infinite;
@@ -2073,6 +2073,15 @@
 
       topicInput.addEventListener('keydown', e => { if (e.key === 'Enter') analyze(); });
 
+      const AUTOFILL = 'What is Clarity';
+      topicInput.value = AUTOFILL;
+      topicInput.addEventListener('focus', () => {
+        if (topicInput.value === AUTOFILL) topicInput.value = '';
+      });
+      topicInput.addEventListener('blur', () => {
+        if (topicInput.value.trim() === '') topicInput.value = AUTOFILL;
+      });
+
       function setTopic(text) { topicInput.value = text; topicInput.focus(); }
 
       function toggleContext() {
@@ -2090,6 +2099,7 @@
         result.innerHTML = '';
         resultImage.classList.add('hidden');
         resultImage.src = '';
+        topicInput.value = AUTOFILL;
         document.getElementById('followupSection').classList.add('hidden');
         document.getElementById('followupChips').innerHTML = '';
         document.getElementById('followupCustomInput').style.display = 'flex';
