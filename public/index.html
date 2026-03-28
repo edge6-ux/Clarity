@@ -262,17 +262,7 @@
         0%   { opacity: 0;    transform: translate(-50%, -50%) scale(0.82); }
         100% { opacity: 0.78; transform: translate(-50%, -50%) scale(0.92); }
       }
-      #splashLine {
-        width: 0; height: 1px;
-        background: var(--btn-from);
-        opacity: 0;
-        margin-top: 14px;
-        animation: splashLineIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) 1.0s forwards;
-      }
-      @keyframes splashLineIn {
-        from { width: 0;    opacity: 0; }
-        to   { width: 36px; opacity: 0.5; }
-      }
+      #splashLine { display: none; }
       #splashScreen.splash-out {
         animation: splashFadeOut 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
       }
