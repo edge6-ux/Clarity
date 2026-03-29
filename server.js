@@ -110,12 +110,14 @@ function cleanTopicForWikipedia(topic) {
 }
 
 // Fetch the Wikipedia thumbnail for a topic.
+// For companies/brands, prefers a logo image over the default summary thumbnail.
 // Returns a URL string or null — never throws.
 async function fetchWikipediaImage(topic) {
   const headers = { "User-Agent": "Clarity/1.0 (educational app; contact via github)" };
   try {
     const query = cleanTopicForWikipedia(topic);
-    // Use opensearch to resolve the best matching article title first
+
+    // Resolve article title
     const searchUrl = `https://en.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(query)}&limit=1&format=json`;
     const searchRes = await fetch(searchUrl, { headers });
     if (!searchRes.ok) return null;
@@ -123,14 +125,42 @@ async function fetchWikipediaImage(topic) {
     const title = titles?.[0];
     if (!title) return null;
 
-    const summaryUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`;
-    const res = await fetch(summaryUrl, { headers });
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data.type !== "standard") return null;
-    const src = data.originalimage?.source ?? data.thumbnail?.source ?? null;
-    if (!src) return null;
-    return src.replace(/\/\d+px-/, "/800px-");
+    // Fetch summary image + page image list in parallel
+    const [summaryRes, imagesRes] = await Promise.all([
+      fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, { headers }),
+      fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=images&imlimit=50&format=json`, { headers }),
+    ]);
+
+    // Parse summary thumbnail as default fallback
+    let fallbackSrc = null;
+    if (summaryRes.ok) {
+      const data = await summaryRes.json();
+      if (data.type === "standard") {
+        const src = data.originalimage?.source ?? data.thumbnail?.source ?? null;
+        if (src) fallbackSrc = src.replace(/\/\d+px-/, "/800px-");
+      }
+    }
+
+    // Look for a logo image in the page's file list
+    if (imagesRes.ok) {
+      const imagesData = await imagesRes.json();
+      const pages = imagesData?.query?.pages ?? {};
+      const pageImages = Object.values(pages)[0]?.images ?? [];
+      const logoFile = pageImages.map(img => img.title).find(t => /logo/i.test(t));
+
+      if (logoFile) {
+        const fileInfoUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(logoFile)}&prop=imageinfo&iiprop=url|thumburl&iiurlwidth=600&format=json`;
+        const fileRes = await fetch(fileInfoUrl, { headers });
+        if (fileRes.ok) {
+          const fileData = await fileRes.json();
+          const info = Object.values(fileData?.query?.pages ?? {})[0]?.imageinfo?.[0];
+          const logoUrl = info?.thumburl ?? info?.url ?? null;
+          if (logoUrl) return logoUrl;
+        }
+      }
+    }
+
+    return fallbackSrc;
   } catch {
     return null;
   }
