@@ -149,7 +149,7 @@ async function fetchWikipediaImage(topic) {
       const logoFile = pageImages.map(img => img.title).find(t => /logo/i.test(t));
 
       if (logoFile) {
-        const fileInfoUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(logoFile)}&prop=imageinfo&iiprop=url|thumburl&iiurlwidth=600&format=json`;
+        const fileInfoUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(logoFile)}&prop=imageinfo&iiprop=url&iiurlwidth=600&format=json`;
         const fileRes = await fetch(fileInfoUrl, { headers });
         if (fileRes.ok) {
           const fileData = await fileRes.json();
