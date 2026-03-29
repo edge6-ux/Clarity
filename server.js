@@ -147,6 +147,7 @@ async function fetchWikipediaImage(topic) {
       const pages = imagesData?.query?.pages ?? {};
       const pageImages = Object.values(pages)[0]?.images ?? [];
       const logoFile = pageImages.map(img => img.title).find(t => /logo/i.test(t));
+      console.log(`[img] title="${title}" logoFile=${logoFile ?? 'none'} fallback=${fallbackSrc ?? 'none'}`);
 
       if (logoFile) {
         const fileInfoUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(logoFile)}&prop=imageinfo&iiprop=url&iiurlwidth=600&format=json`;
@@ -155,13 +156,17 @@ async function fetchWikipediaImage(topic) {
           const fileData = await fileRes.json();
           const info = Object.values(fileData?.query?.pages ?? {})[0]?.imageinfo?.[0];
           const logoUrl = info?.thumburl ?? info?.url ?? null;
+          console.log(`[img] logoUrl=${logoUrl ?? 'none'}`);
           if (logoUrl) return logoUrl;
         }
       }
+    } else {
+      console.log(`[img] imagesRes not ok: ${imagesRes.status}`);
     }
 
     return fallbackSrc;
-  } catch {
+  } catch (err) {
+    console.error(`[img] error:`, err.message);
     return null;
   }
 }
