@@ -305,31 +305,8 @@
       }
       .fade-in-up { animation: fadeInUp 0.4s ease both; }
 
-      /* ─── Loading sparkle (sequential arm extension) ───────────────────── */
-      @keyframes armExtend {
-        0%   { stroke-dashoffset: 6.5; opacity: 0.12; }
-        10%  { stroke-dashoffset: 0;   opacity: 1;    }
-        22%  { stroke-dashoffset: 0;   opacity: 1;    }
-        32%  { stroke-dashoffset: 6.5; opacity: 0.12; }
-        100% { stroke-dashoffset: 6.5; opacity: 0.12; }
-      }
-      .star-burst { overflow: visible; flex-shrink: 0; }
-      .star-burst line {
-        stroke: currentColor; stroke-width: 2; stroke-linecap: round;
-        stroke-dasharray: 6.5;
-        stroke-dashoffset: 6.5;
-        animation: armExtend 1.2s ease-in-out infinite;
-        opacity: 0.12;
-      }
-      /* pairs: N+S, NE+SW, E+W, SE+NW */
-      .star-burst line:nth-child(1) { animation-delay: 0.00s; } /* N  */
-      .star-burst line:nth-child(2) { animation-delay: 0.30s; } /* NE */
-      .star-burst line:nth-child(3) { animation-delay: 0.60s; } /* E  */
-      .star-burst line:nth-child(4) { animation-delay: 0.90s; } /* SE */
-      .star-burst line:nth-child(5) { animation-delay: 0.00s; } /* S  */
-      .star-burst line:nth-child(6) { animation-delay: 0.30s; } /* SW */
-      .star-burst line:nth-child(7) { animation-delay: 0.60s; } /* W  */
-      .star-burst line:nth-child(8) { animation-delay: 0.90s; } /* NW */
+      /* ─── Loading swirl canvas ──────────────────────────────────────────── */
+      #loadingOrb { flex-shrink: 0; display: block; }
 
       @keyframes pulseDot {
         0%, 70%, 100% { transform: scale(0.75) translateY(0);   background-color: rgba(255,255,255,0.2); box-shadow: none; }
@@ -338,6 +315,12 @@
       .dot { animation: pulseDot 1.4s infinite ease-in-out; }
       .dot:nth-child(2) { animation-delay: 0.18s; }
       .dot:nth-child(3) { animation-delay: 0.36s; }
+
+      @keyframes loadingTextPulse {
+        0%, 100% { opacity: 0.35; color: rgba(255,255,255,0.35); }
+        50%       { opacity: 1;    color: var(--btn-from); }
+      }
+      #loadingText { animation: loadingTextPulse 2.4s ease-in-out infinite; }
 
       #contextChevron { transition: transform 0.2s ease; }
 
@@ -1061,17 +1044,8 @@
       <!-- Output -->
       <div id="output" class="w-full max-w-xl mt-5 hidden">
         <div id="loading" class="hidden flex items-center gap-3 px-1 py-6">
-          <svg class="star-burst" viewBox="-8 -8 16 16" width="14" height="14" style="color:var(--btn-from)">
-            <line x1="0" y1="0" x2="0"    y2="-6.5"/>
-            <line x1="0" y1="0" x2="4.6"  y2="-4.6"/>
-            <line x1="0" y1="0" x2="6.5"  y2="0"/>
-            <line x1="0" y1="0" x2="4.6"  y2="4.6"/>
-            <line x1="0" y1="0" x2="0"    y2="6.5"/>
-            <line x1="0" y1="0" x2="-4.6" y2="4.6"/>
-            <line x1="0" y1="0" x2="-6.5" y2="0"/>
-            <line x1="0" y1="0" x2="-4.6" y2="-4.6"/>
-          </svg>
-          <span id="loadingText" class="text-white/35 text-xs tracking-wide"></span>
+          <canvas id="loadingOrb" width="14" height="14" style="width:14px;height:14px"></canvas>
+          <span id="loadingText" class="text-xs tracking-wide"></span>
         </div>
         <div id="resultCard" class="glass rounded-2xl hidden">
           <div class="flex items-center justify-between px-5 py-3 border-b border-white/[0.06]">
@@ -1344,8 +1318,6 @@
       let menuOpen       = false;
       let contentHidden  = localStorage.getItem('clarity-hide-content') === 'true';
       let lastMarkdown = "";
-      let loadingInterval = null;
-
       const LOADING_PHRASES = [
         'gazing into the abyss',
         'searching for clarity',
@@ -1354,14 +1326,84 @@
         'navigating infinity',
       ];
 
+      let loadingOrbRAF = null;
+
       function startLoadingPhrases() {
-        document.getElementById('loadingText').textContent =
-          LOADING_PHRASES[Math.floor(Math.random() * LOADING_PHRASES.length)] + '...';
+        const idx = Math.floor(Math.random() * LOADING_PHRASES.length);
+        document.getElementById('loadingText').textContent = LOADING_PHRASES[idx] + '...';
+        startLoadingSwirl();
       }
 
       function stopLoadingPhrases() {
-        clearInterval(loadingInterval);
-        loadingInterval = null;
+        document.getElementById('loadingText').textContent = '';
+        stopLoadingSwirl();
+      }
+
+      function startLoadingSwirl() {
+        const canvas = document.getElementById('loadingOrb');
+        if (!canvas) return;
+        const dpr = window.devicePixelRatio || 1;
+        const SIZE = 14;
+        canvas.width  = SIZE * dpr;
+        canvas.height = SIZE * dpr;
+        const ctx = canvas.getContext('2d');
+        ctx.scale(dpr, dpr);
+        const cx = SIZE / 2, cy = SIZE / 2;
+        const R = 5.2;
+        const CYCLE = Math.PI * 6; // 3 rotations per sweep
+        const TRAIL = 14;
+        const accentColor = getComputedStyle(document.documentElement)
+          .getPropertyValue('--btn-from').trim() || '#b060ff';
+
+        let angle = 0;
+        let lastTs = null;
+        const trail = [];
+
+        function frame(ts) {
+          if (!lastTs) lastTs = ts;
+          const dt = Math.min(ts - lastTs, 50);
+          lastTs = ts;
+
+          // t = how far through the current 3-rotation sweep (0→1)
+          const t = (angle % CYCLE) / CYCLE;
+
+          // angular velocity: slow at rim, fast near center + slight wobble for organic feel
+          const baseVel = 0.003 + 0.014 * t * t;
+          const wobble  = 0.0015 * Math.sin(angle * 4.3);
+          angle += (baseVel + wobble) * dt;
+
+          // radius shrinks toward center, with a small sinusoidal ripple
+          const r = R * (1 - t * 0.90) + Math.sin(angle * 2.9) * 0.28;
+
+          trail.push({ x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) });
+          if (trail.length > TRAIL) trail.shift();
+
+          ctx.clearRect(0, 0, SIZE, SIZE);
+
+          for (let i = 0; i < trail.length; i++) {
+            const p = trail[i];
+            const progress = i / (trail.length - 1 || 1);
+            const alpha = 0.08 + progress * 0.92;
+            const size  = 0.5 + progress * 1.2;
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = accentColor;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+
+          loadingOrbRAF = requestAnimationFrame(frame);
+        }
+
+        loadingOrbRAF = requestAnimationFrame(frame);
+      }
+
+      function stopLoadingSwirl() {
+        if (loadingOrbRAF) { cancelAnimationFrame(loadingOrbRAF); loadingOrbRAF = null; }
+        const canvas = document.getElementById('loadingOrb');
+        if (canvas) canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
       }
 
       const root = document.documentElement;
@@ -2262,8 +2304,9 @@
       }
 
       async function analyze() {
-        const topic = topicInput.value.trim();
-        if (!topic) return;
+        const raw = topicInput.value.trim();
+        const topic = (raw === '' || raw === AUTOFILL) ? AUTOFILL : raw;
+        topicInput.value = topic;
 
         output.classList.remove('hidden');
         loading.classList.remove('hidden');
