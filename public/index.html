@@ -2038,19 +2038,21 @@
 
         // ── Nebulas (behind stars) ───────────────────────────────────────
         const accentRaw = getComputedStyle(document.documentElement).getPropertyValue('--btn-from').trim() || '#b060ff';
-        const [baseHue] = hexToHsl(accentRaw);
+        const [baseHue, baseSat, baseLit] = hexToHsl(accentRaw);
+        const isNeutral = baseSat < 12; // silver / black — no hue tinting
         for (const n of crystalNebulas) {
-          const hue    = (baseHue + n.hueShift + 360) % 360;
+          const hue    = isNeutral ? 0 : (baseHue + n.hueShift + 360) % 360;
           const pulse  = n.op * (1 + 0.25 * Math.sin(t * n.speed * Math.PI * 2 + n.phase));
           ctx.save();
           ctx.translate(n.x, n.y);
           ctx.rotate(n.angle);
           ctx.scale(1, n.aspectY);
+          const nSat = isNeutral ? 0 : 80;
           const ng = ctx.createRadialGradient(0,0,0, 0,0, n.rx);
-          ng.addColorStop(0,    `hsla(${hue},80%,65%,${(pulse).toFixed(3)})`);
-          ng.addColorStop(0.35, `hsla(${hue},70%,55%,${(pulse*0.45).toFixed(3)})`);
-          ng.addColorStop(0.70, `hsla(${hue},60%,45%,${(pulse*0.12).toFixed(3)})`);
-          ng.addColorStop(1,    `hsla(${hue},50%,40%,0)`);
+          ng.addColorStop(0,    `hsla(${hue},${nSat}%,72%,${(pulse).toFixed(3)})`);
+          ng.addColorStop(0.35, `hsla(${hue},${nSat}%,60%,${(pulse*0.45).toFixed(3)})`);
+          ng.addColorStop(0.70, `hsla(${hue},${nSat}%,48%,${(pulse*0.12).toFixed(3)})`);
+          ng.addColorStop(1,    `hsla(${hue},${nSat}%,40%,0)`);
           ctx.beginPath();
           ctx.arc(0, 0, n.rx, 0, Math.PI*2);
           ctx.fillStyle = ng;
@@ -2112,13 +2114,28 @@
           ctx.closePath(); ctx.fillStyle = g; ctx.fill();
         }
 
-        // Core glow
-        const coreR = baseLen * 0.28;
+        // Core glow — tinted to theme accent color (neutral for silver/black)
+        const coreR = baseLen * 0.42;
         const cg = ctx.createRadialGradient(0, 0, 0, 0, 0, coreR);
-        cg.addColorStop(0,    'rgba(255,255,255,1)');
-        cg.addColorStop(0.18, 'rgba(255,252,255,0.96)');
-        cg.addColorStop(0.50, 'rgba(230,210,255,0.55)');
-        cg.addColorStop(1,    'rgba(160,100,255,0)');
+        if (isNeutral) {
+          // silver (light) → bright white core; black (dark) → dim charcoal core
+          const isSilver = baseLit > 55;
+          const cL0 = isSilver ? 97  : 38;
+          const cL1 = isSilver ? 88  : 28;
+          const cL2 = isSilver ? 75  : 20;
+          const cA0 = isSilver ? 1   : 0.7;
+          const cA1 = isSilver ? 0.9 : 0.5;
+          cg.addColorStop(0,    `hsla(0, 0%, ${cL0}%, ${cA0})`);
+          cg.addColorStop(0.20, `hsla(0, 0%, ${cL1}%, ${cA1})`);
+          cg.addColorStop(0.55, `hsla(0, 0%, ${cL2}%, 0.35)`);
+          cg.addColorStop(1,    `hsla(0, 0%, ${cL2 - 10}%, 0)`);
+        } else {
+          cg.addColorStop(0,    `hsla(${baseHue}, 100%, 92%, 1)`);
+          cg.addColorStop(0.15, `hsla(${baseHue}, 100%, 80%, 1)`);
+          cg.addColorStop(0.40, `hsla(${baseHue}, 95%,  65%, 0.85)`);
+          cg.addColorStop(0.70, `hsla(${baseHue}, 90%,  55%, 0.40)`);
+          cg.addColorStop(1,    `hsla(${baseHue}, 85%,  45%, 0)`);
+        }
         ctx.beginPath(); ctx.arc(0, 0, coreR, 0, Math.PI * 2);
         ctx.fillStyle = cg; ctx.fill();
 
