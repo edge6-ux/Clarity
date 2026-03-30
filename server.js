@@ -125,7 +125,7 @@ function cleanTopicForWikipedia(topic) {
 }
 
 // Fetch the Wikipedia thumbnail for a topic.
-// For companies/brands, prefers a logo image over the default summary thumbnail.
+// For companies/brands, prefers a logo image over the representative thumbnail.
 // Returns a URL string or null — never throws.
 async function fetchWikipediaImage(topic) {
   const headers = { "User-Agent": "Clarity/1.0 (educational app; contact via github)" };
@@ -140,43 +140,39 @@ async function fetchWikipediaImage(topic) {
     const title = titles?.[0];
     if (!title) return null;
 
-    // Fetch summary image + page image list in parallel
-    const [summaryRes, imagesRes] = await Promise.all([
-      fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, { headers }),
-      fetch(`https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=images&imlimit=50&format=json`, { headers }),
-    ]);
+    // Single combined query: pageimages (representative thumbnail) + images list (for logo detection)
+    const queryUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=pageimages|images&pithumbsize=800&imlimit=50&format=json`;
+    const queryRes = await fetch(queryUrl, { headers });
+    if (!queryRes.ok) return null;
 
-    // Parse summary thumbnail as default fallback
-    let fallbackSrc = null;
-    if (summaryRes.ok) {
-      const data = await summaryRes.json();
-      if (data.type === "standard") {
-        const src = data.originalimage?.source ?? data.thumbnail?.source ?? null;
-        if (src) fallbackSrc = src.replace(/\/\d+px-/, "/800px-");
-      }
-    }
+    const queryData = await queryRes.json();
+    const page = Object.values(queryData?.query?.pages ?? {})[0];
 
-    // Look for a logo image in the page's file list
-    if (imagesRes.ok) {
-      const imagesData = await imagesRes.json();
-      const pages = imagesData?.query?.pages ?? {};
-      const pageImages = Object.values(pages)[0]?.images ?? [];
-      const WIKI_UI = /wiktionary|wikipedia|wikimedia|wikidata|wikisource|commons-logo|OOjs/i;
-      const logoFile = pageImages.map(img => img.title).find(t => /logo/i.test(t) && !WIKI_UI.test(t));
-      if (logoFile) {
-        const fileInfoUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(logoFile)}&prop=imageinfo&iiprop=url&iiurlwidth=600&format=json`;
-        const fileRes = await fetch(fileInfoUrl, { headers });
-        if (fileRes.ok) {
-          const fileData = await fileRes.json();
-          const info = Object.values(fileData?.query?.pages ?? {})[0]?.imageinfo?.[0];
-          const logoUrl = info?.thumburl ?? info?.url ?? null;
-          if (logoUrl) return logoUrl;
-        }
+    // Representative thumbnail (pageimages — Wikipedia's own pick for the article)
+    const fallbackSrc = page?.thumbnail?.source ?? null;
+
+    // Look for a logo file in the images list
+    const pageImages = page?.images ?? [];
+    const WIKI_UI = /wiktionary|wikipedia|wikimedia|wikidata|wikisource|commons-logo|OOjs/i;
+    const logoFile = pageImages.map(img => img.title).find(t => /logo/i.test(t) && !WIKI_UI.test(t));
+
+    console.log(`[img] title='${title}' logoFile=${logoFile ?? 'none'} fallback=${fallbackSrc ? 'yes' : 'none'}`);
+
+    if (logoFile) {
+      const fileInfoUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(logoFile)}&prop=imageinfo&iiprop=url&iiurlwidth=600&format=json`;
+      const fileRes = await fetch(fileInfoUrl, { headers });
+      if (fileRes.ok) {
+        const fileData = await fileRes.json();
+        const info = Object.values(fileData?.query?.pages ?? {})[0]?.imageinfo?.[0];
+        const logoUrl = info?.thumburl ?? info?.url ?? null;
+        console.log(`[img] logoUrl=${logoUrl ?? 'none'}`);
+        if (logoUrl) return logoUrl;
       }
     }
 
     return fallbackSrc;
-  } catch {
+  } catch (err) {
+    console.log(`[img] error: ${err.message}`);
     return null;
   }
 }
