@@ -106,6 +106,7 @@ AVOID:
 function cleanTopicForWikipedia(topic) {
   return topic
     .replace(/^(explain|describe|what (is|are|was|were)|how (does|do|did)|tell me about|define|who (is|are|was|were)|why (is|are|does|do))\s+/i, "")
+    .replace(/[?!.]+$/, "")
     .trim();
 }
 
@@ -146,9 +147,8 @@ async function fetchWikipediaImage(topic) {
       const imagesData = await imagesRes.json();
       const pages = imagesData?.query?.pages ?? {};
       const pageImages = Object.values(pages)[0]?.images ?? [];
-      const logoFile = pageImages.map(img => img.title).find(t => /logo/i.test(t));
-      console.log(`[img] title="${title}" logoFile=${logoFile ?? 'none'} fallback=${fallbackSrc ?? 'none'}`);
-
+      const WIKI_UI = /wiktionary|wikipedia|wikimedia|wikidata|wikisource|commons-logo|OOjs/i;
+      const logoFile = pageImages.map(img => img.title).find(t => /logo/i.test(t) && !WIKI_UI.test(t));
       if (logoFile) {
         const fileInfoUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(logoFile)}&prop=imageinfo&iiprop=url&iiurlwidth=600&format=json`;
         const fileRes = await fetch(fileInfoUrl, { headers });
@@ -156,17 +156,13 @@ async function fetchWikipediaImage(topic) {
           const fileData = await fileRes.json();
           const info = Object.values(fileData?.query?.pages ?? {})[0]?.imageinfo?.[0];
           const logoUrl = info?.thumburl ?? info?.url ?? null;
-          console.log(`[img] logoUrl=${logoUrl ?? 'none'}`);
           if (logoUrl) return logoUrl;
         }
       }
-    } else {
-      console.log(`[img] imagesRes not ok: ${imagesRes.status}`);
     }
 
     return fallbackSrc;
-  } catch (err) {
-    console.error(`[img] error:`, err.message);
+  } catch {
     return null;
   }
 }
