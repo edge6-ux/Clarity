@@ -64,7 +64,7 @@
         pointer-events: none; z-index: 1;
         animation: circularOrbit 18s linear infinite;
         will-change: transform;
-        transition: background 0.6s ease;
+        transition: background 0.6s ease, opacity 0.5s ease;
       }
       .orb::after {
         content: ""; position: absolute; inset: 10%; border-radius: 50%;
@@ -74,6 +74,7 @@
       #crystalOrbCanvas {
         position: fixed; inset: 0; width: 100%; height: 100%;
         pointer-events: none; z-index: 1;
+        transition: opacity 0.5s ease;
       }
 
       /* Double-rotation trick: rotate coord system → translate outward → counter-rotate orb.
@@ -1930,8 +1931,10 @@
       let crystalOrbStart  = null;
       let crystalOrbW      = 0;
       let crystalOrbH      = 0;
-      let crystalStarData  = [];
-      let crystalNebulas   = [];
+      let crystalStarData       = [];
+      let crystalNebulas        = [];
+      let crystalShootingStars  = [];
+      let crystalShootTimeout   = null;
       const isMobileOrb    = window.innerWidth <= 768;
       const SPIKE_COUNT    = isMobileOrb ? 38 : 60;
 
@@ -2018,6 +2021,23 @@
         return stars;
       }
 
+      function spawnCrystalShootingStar() {
+        const angle      = (Math.random() * 22 + 14) * Math.PI / 180;
+        const startX     = Math.random() * crystalOrbW * 0.65;
+        const startY     = Math.random() * crystalOrbH * 0.35;
+        const tailLen    = Math.random() * 130 + 70;
+        const distToEdge = Math.min(
+          (crystalOrbW - startX) / Math.cos(angle),
+          (crystalOrbH - startY) / Math.sin(angle)
+        );
+        const totalDist  = distToEdge + tailLen;
+        const duration   = Math.random() * 0.13 + 0.14;
+        crystalShootingStars.push({ startX, startY, angle, tailLen, totalDist, speed: totalDist / duration, born: null });
+        // 15% chance of a quick follow-up
+        if (Math.random() < 0.15) setTimeout(spawnCrystalShootingStar, Math.random() * 1800 + 400);
+        crystalShootTimeout = setTimeout(spawnCrystalShootingStar, Math.random() * 26000 + 18000);
+      }
+
       function resizeCrystalOrb() {
         const c = document.getElementById('crystalOrbCanvas');
         if (!c) return;
@@ -2067,6 +2087,40 @@
           ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
           ctx.fillStyle = `rgba(${s.cr},${s.cg},${s.cb},${Math.max(0, opacity)})`;
           ctx.fill();
+        }
+
+        // ── Shooting stars ───────────────────────────────────────────────
+        for (let i = crystalShootingStars.length - 1; i >= 0; i--) {
+          const s = crystalShootingStars[i];
+          if (s.born === null) s.born = t;
+          const dist     = (t - s.born) * s.speed;
+          const progress = dist / s.totalDist;
+          if (progress >= 1) { crystalShootingStars.splice(i, 1); continue; }
+          const alpha  = progress > 0.7 ? (1 - progress) / 0.3 : 1;
+          const headX  = s.startX + Math.cos(s.angle) * dist;
+          const headY  = s.startY + Math.sin(s.angle) * dist;
+          const tailDist = Math.max(0, dist - s.tailLen);
+          const tailX  = s.startX + Math.cos(s.angle) * tailDist;
+          const tailY  = s.startY + Math.sin(s.angle) * tailDist;
+          const sg = ctx.createLinearGradient(tailX, tailY, headX, headY);
+          sg.addColorStop(0,   `rgba(180,210,255,0)`);
+          sg.addColorStop(0.5, `rgba(210,230,255,${(0.18 * alpha).toFixed(3)})`);
+          sg.addColorStop(1,   `rgba(255,255,255,${(0.45 * alpha).toFixed(3)})`);
+          ctx.beginPath();
+          ctx.moveTo(tailX, tailY);
+          ctx.lineTo(headX, headY);
+          ctx.strokeStyle = sg;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          if (!isMobileOrb) {
+            const glow = ctx.createRadialGradient(headX, headY, 0, headX, headY, 3);
+            glow.addColorStop(0,   `rgba(255,255,255,${(0.50 * alpha).toFixed(3)})`);
+            glow.addColorStop(0.4, `rgba(200,225,255,${(0.22 * alpha).toFixed(3)})`);
+            glow.addColorStop(1,   `rgba(180,210,255,0)`);
+            ctx.beginPath();
+            ctx.arc(headX, headY, 3, 0, Math.PI * 2);
+            ctx.fillStyle = glow; ctx.fill();
+          }
         }
 
         // ── Crystal orb (drawn at 30% opacity, softly blurred) ──────────
@@ -2147,17 +2201,29 @@
         resizeCrystalOrb();
         const c = document.getElementById('crystalOrbCanvas');
         c.style.display = 'block';
-        c.style.opacity = '1';
+        c.style.opacity = '0';
+        crystalShootingStars = [];
+        if (crystalShootTimeout) { clearTimeout(crystalShootTimeout); crystalShootTimeout = null; }
+        crystalShootTimeout = setTimeout(spawnCrystalShootingStar, Math.random() * 10000 + 8000);
         crystalOrbStart = null;
         crystalOrbRAF   = requestAnimationFrame(crystalOrbFrame);
+        // Fade in after first frame is painted
+        requestAnimationFrame(() => { c.style.opacity = '1'; });
       }
 
       function stopCrystalOrb() {
-        if (crystalOrbRAF) { cancelAnimationFrame(crystalOrbRAF); crystalOrbRAF = null; }
+        if (crystalShootTimeout) { clearTimeout(crystalShootTimeout); crystalShootTimeout = null; }
+        crystalShootingStars = [];
+        if (!crystalOrbRAF) return;
+        // Stop drawing immediately; last frame stays visible while CSS fades it out
+        cancelAnimationFrame(crystalOrbRAF); crystalOrbRAF = null;
         const c = document.getElementById('crystalOrbCanvas');
-        if (c) { c.style.display = 'none'; c.getContext('2d').clearRect(0, 0, crystalOrbW, crystalOrbH); }
-        crystalStarData = [];
-        crystalNebulas  = [];
+        if (c) c.style.opacity = '0';
+        setTimeout(() => {
+          if (c) { c.style.display = 'none'; c.getContext('2d').clearRect(0, 0, crystalOrbW, crystalOrbH); }
+          crystalStarData = [];
+          crystalNebulas  = [];
+        }, 520);
       }
 
       window.addEventListener('resize', () => { if (crystalOrbRAF) resizeCrystalOrb(); });
