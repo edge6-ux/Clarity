@@ -13,29 +13,43 @@ app.use(express.static(path.join(__dirname, "public")));
 const client = new OpenAI.default({ apiKey: process.env.OPENAI_API_KEY });
 const upload = multer({ storage: multer.memoryStorage() });
 
-/* ── IP rate limiter: 20 requests per hour ───────────────────────────── */
-const RATE_LIMIT    = 20;
-const RATE_WINDOW   = 60 * 60 * 1000; // 1 hour in ms
-const ipRequests    = new Map();
+/* ── IP rate limiter ─────────────────────────────────────────────────── */
+// Hourly cap:  20 searches per IP per hour
+// Burst cap:   6 searches per IP per minute (prevents draining quota instantly)
+const HOUR_LIMIT   = 20;
+const HOUR_WINDOW  = 60 * 60 * 1000;
+const BURST_LIMIT  = 6;
+const BURST_WINDOW = 60 * 1000;
+const ipRequests   = new Map();
 
 function rateLimiter(req, res, next) {
-  const ip  = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress;
+  const ip  = (req.headers['x-forwarded-for']?.split(',')[0] ?? '').trim() || req.socket.remoteAddress;
   const now = Date.now();
-  const entry = ipRequests.get(ip);
+  let entry = ipRequests.get(ip);
 
-  if (!entry || now > entry.resetAt) {
-    ipRequests.set(ip, { count: 1, resetAt: now + RATE_WINDOW });
-    return next();
+  if (!entry || now > entry.hourResetAt) {
+    entry = { hourCount: 0, hourResetAt: now + HOUR_WINDOW, burstCount: 0, burstResetAt: now + BURST_WINDOW };
+  }
+  if (now > entry.burstResetAt) {
+    entry.burstCount    = 0;
+    entry.burstResetAt  = now + BURST_WINDOW;
   }
 
-  if (entry.count >= RATE_LIMIT) {
-    const retryAfter = Math.ceil((entry.resetAt - now) / 1000 / 60);
+  if (entry.hourCount >= HOUR_LIMIT) {
+    const mins = Math.ceil((entry.hourResetAt - now) / 60000);
     return res.status(429).json({
-      error: `You've reached the limit of ${RATE_LIMIT} searches per hour. Try again in ${retryAfter} minute${retryAfter === 1 ? '' : 's'}.`
+      error: `You've reached the limit of ${HOUR_LIMIT} searches per hour. Try again in ${mins} minute${mins === 1 ? '' : 's'}.`
+    });
+  }
+  if (entry.burstCount >= BURST_LIMIT) {
+    return res.status(429).json({
+      error: `Slow down — you can search up to ${BURST_LIMIT} times per minute.`
     });
   }
 
-  entry.count++;
+  entry.hourCount++;
+  entry.burstCount++;
+  ipRequests.set(ip, entry);
   next();
 }
 
@@ -43,7 +57,7 @@ function rateLimiter(req, res, next) {
 setInterval(() => {
   const now = Date.now();
   for (const [ip, entry] of ipRequests) {
-    if (now > entry.resetAt) ipRequests.delete(ip);
+    if (now > entry.hourResetAt) ipRequests.delete(ip);
   }
 }, 30 * 60 * 1000);
 
