@@ -322,14 +322,14 @@
       .dot:nth-child(2) { animation-delay: 0.18s; }
       .dot:nth-child(3) { animation-delay: 0.36s; }
 
-      @keyframes waveChar {
-        0%, 25%, 75%, 100% { color: rgba(255,255,255,0.4); transform: translateY(0);    }
-        50%                 { color: var(--btn-from);       transform: translateY(-5px); }
+      @keyframes shimmerChar {
+        0%, 100% { opacity: 0.25; }
+        50%      { opacity: 0.85; color: var(--btn-from); }
       }
-      #loadingText { color: rgba(255,255,255,0.4); }
+      #loadingText { color: rgba(255,255,255,0.25); }
       .wave-char {
         display: inline-block;
-        animation: waveChar 2.2s linear infinite;
+        animation: shimmerChar 3s ease-in-out infinite;
       }
 
       #contextChevron { transition: transform 0.2s ease; }
@@ -1350,6 +1350,7 @@
         'embracing the orb',
         'enveloped by the void',
         'navigating infinity',
+        'entranced by the echo',
       ];
 
       let loadingOrbRAF = null;
@@ -1361,7 +1362,7 @@
         const total  = chars.length;
         document.getElementById('loadingText').innerHTML = chars.map((ch, i) => {
           if (ch === ' ') return ' ';
-          const delay = ((i / total) * 2.2).toFixed(3);
+          const delay = ((i / total) * 1.4).toFixed(3);
           return `<span class="wave-char" style="animation-delay:${delay}s">${ch}</span>`;
         }).join('');
         startLoadingSwirl();
