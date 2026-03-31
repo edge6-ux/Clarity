@@ -322,11 +322,15 @@
       .dot:nth-child(2) { animation-delay: 0.18s; }
       .dot:nth-child(3) { animation-delay: 0.36s; }
 
-      @keyframes loadingTextPulse {
-        0%, 100% { opacity: 0.35; color: rgba(255,255,255,0.35); }
-        50%       { opacity: 1;    color: var(--btn-from); }
+      @keyframes waveChar {
+        0%, 25%, 75%, 100% { color: rgba(255,255,255,0.4); transform: translateY(0);    }
+        50%                 { color: var(--btn-from);       transform: translateY(-5px); }
       }
-      #loadingText { animation: loadingTextPulse 2.4s ease-in-out infinite; }
+      #loadingText { color: rgba(255,255,255,0.4); }
+      .wave-char {
+        display: inline-block;
+        animation: waveChar 2.2s linear infinite;
+      }
 
       #contextChevron { transition: transform 0.2s ease; }
 
@@ -1351,8 +1355,15 @@
       let loadingOrbRAF = null;
 
       function startLoadingPhrases() {
-        const idx = Math.floor(Math.random() * LOADING_PHRASES.length);
-        document.getElementById('loadingText').textContent = LOADING_PHRASES[idx] + '...';
+        const idx   = Math.floor(Math.random() * LOADING_PHRASES.length);
+        const phrase = LOADING_PHRASES[idx] + '...';
+        const chars  = [...phrase];
+        const total  = chars.length;
+        document.getElementById('loadingText').innerHTML = chars.map((ch, i) => {
+          if (ch === ' ') return ' ';
+          const delay = ((i / total) * 2.2).toFixed(3);
+          return `<span class="wave-char" style="animation-delay:${delay}s">${ch}</span>`;
+        }).join('');
         startLoadingSwirl();
       }
 
