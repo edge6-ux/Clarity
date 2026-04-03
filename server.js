@@ -141,36 +141,15 @@ async function fetchWikipediaImage(topic) {
     if (!title) return null;
 
     // Single combined query: pageimages (representative thumbnail) + images list (for logo detection)
-    const queryUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=pageimages|images&pithumbsize=800&imlimit=50&format=json`;
+    const queryUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=pageimages&pithumbsize=800&format=json`;
     const queryRes = await fetch(queryUrl, { headers });
     if (!queryRes.ok) return null;
 
     const queryData = await queryRes.json();
     const page = Object.values(queryData?.query?.pages ?? {})[0];
 
-    // Representative thumbnail (pageimages — Wikipedia's own pick for the article)
-    const fallbackSrc = page?.thumbnail?.source ?? null;
-
-    // Look for a logo file in the images list
-    const pageImages = page?.images ?? [];
-    const WIKI_UI = /wiktionary|wikipedia|wikimedia|wikidata|wikisource|commons-logo|OOjs/i;
-    const logoFile = pageImages.map(img => img.title).find(t => /logo/i.test(t) && !WIKI_UI.test(t));
-
-    console.log(`[img] title='${title}' logoFile=${logoFile ?? 'none'} fallback=${fallbackSrc ? 'yes' : 'none'}`);
-
-    if (logoFile) {
-      const fileInfoUrl = `https://en.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(logoFile)}&prop=imageinfo&iiprop=url&iiurlwidth=600&format=json`;
-      const fileRes = await fetch(fileInfoUrl, { headers });
-      if (fileRes.ok) {
-        const fileData = await fileRes.json();
-        const info = Object.values(fileData?.query?.pages ?? {})[0]?.imageinfo?.[0];
-        const logoUrl = info?.thumburl ?? info?.url ?? null;
-        console.log(`[img] logoUrl=${logoUrl ?? 'none'}`);
-        if (logoUrl) return logoUrl;
-      }
-    }
-
-    return fallbackSrc;
+    // Use Wikipedia's own representative thumbnail for the article
+    return page?.thumbnail?.source ?? null;
   } catch (err) {
     console.log(`[img] error: ${err.message}`);
     return null;
