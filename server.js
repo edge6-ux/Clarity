@@ -412,10 +412,12 @@ app.post("/analyze", rateLimiter, upload.single("file"), async (req, res) => {
 
     const text = aiResponse.choices[0]?.message?.content ?? "";
 
-    // Generate follow-up questions using the result for context
+    // Generate follow-up questions and explore subtopics in parallel
     let followUps = [];
-    try {
-      const fuRes = await client.chat.completions.create({
+    let exploreTopics = [];
+
+    const [fuRes, etRes] = await Promise.allSettled([
+      client.chat.completions.create({
         model: "gpt-4o-mini",
         max_tokens: 150,
         messages: [
@@ -426,23 +428,56 @@ app.post("/analyze", rateLimiter, upload.single("file"), async (req, res) => {
 Return ONLY a valid JSON array of 3 strings, each under 9 words. No other text.` },
           { role: "user", content: `Topic: ${topic}\nContext: ${text.slice(0, 400)}` },
         ],
-      });
-      const raw = fuRes.choices[0]?.message?.content ?? "[]";
-      followUps = JSON.parse(raw.match(/\[[\s\S]*\]/)?.[0] ?? "[]");
+      }),
+      client.chat.completions.create({
+        model: "gpt-4o-mini",
+        max_tokens: 300,
+        messages: [
+          { role: "system", content: `Generate exactly 3 subtopic questions that guide a curious reader to explore a topic more deeply via external resources. Each should be a specific, nuanced angle — not general. Mix:
+1. A mechanistic "how" or "why" question (e.g. "How do black holes actually form?")
+2. A historical, origin, or discovery question (e.g. "Who first proved black holes exist?")
+3. A broader implications, controversy, or frontier question (e.g. "What happens to information inside a black hole?")
+Return ONLY a valid JSON array of 3 objects: [{"question": "...", "searchQuery": "..."}]
+"question" is the full question shown to the user (under 12 words).
+"searchQuery" is 2–4 keywords optimized for a news/web search (no punctuation, no question marks).
+No other text.` },
+          { role: "user", content: `Topic: ${topic}` },
+        ],
+      }),
+    ]);
+
+    // Parse follow-ups
+    try {
+      if (fuRes.status === 'fulfilled') {
+        const raw = fuRes.value.choices[0]?.message?.content ?? "[]";
+        followUps = JSON.parse(raw.match(/\[[\s\S]*\]/)?.[0] ?? "[]");
+      }
     } catch { followUps = []; }
 
-    // ZeroHedge first, then Google News, then HN. Dedupe by domain.
-    const seen = new Set();
-    const articles = [...zhArticles, ...newsArticles, ...hnArticles].filter(a => {
-      try {
-        const host = new URL(a.url).hostname;
-        if (seen.has(host)) return false;
-        seen.add(host);
-        return true;
-      } catch { return false; }
-    }).slice(0, 5);
+    // Parse subtopics then fetch one article per subtopic
+    try {
+      if (etRes.status === 'fulfilled') {
+        const raw = etRes.value.choices[0]?.message?.content ?? "[]";
+        const subtopics = JSON.parse(raw.match(/\[[\s\S]*\]/)?.[0] ?? "[]");
+        const articleResults = await Promise.all(
+          subtopics.map(s => fetchGoogleNewsArticles(s.searchQuery))
+        );
+        exploreTopics = subtopics.map((s, i) => {
+          const article = articleResults[i]?.[0] ?? null;
+          const wikiSlug = encodeURIComponent(s.searchQuery.replace(/\s+/g, '_'));
+          return {
+            question: s.question,
+            article: article ?? {
+              title: s.searchQuery,
+              url: `https://en.wikipedia.org/wiki/${wikiSlug}`,
+              source: 'Wikipedia',
+            },
+          };
+        });
+      }
+    } catch { exploreTopics = []; }
 
-    res.json({ topic, result: text, image: image ?? null, reddit: redditPosts, articles, followUps });
+    res.json({ topic, result: text, image: image ?? null, reddit: redditPosts, exploreTopics, followUps });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Something went wrong. Try again." });

@@ -491,40 +491,48 @@
       #learnMoreInput input  { flex: 1; font-size: 0.75rem; padding: 6px 12px; border-radius: 8px; }
       #learnMoreInput button { font-size: 0.72rem; padding: 6px 14px; border-radius: 8px; white-space: nowrap; }
 
-      /* ─── Articles section ──────────────────────────────────────────── */
-      #articlesSection {
+      /* ─── Explore Deeper section ────────────────────────────────────── */
+      #exploreSection {
         border-top: 1px solid rgba(255,255,255,0.06);
         padding: 14px 20px 16px;
       }
-      #articlesSection .articles-label {
+      #exploreSection .explore-label {
         font-size: 0.6rem; font-weight: 600; letter-spacing: 0.1em;
         text-transform: uppercase; color: rgba(255,255,255,0.22);
         display: flex; align-items: center; gap: 6px; margin-bottom: 10px;
       }
-      .article-post {
-        display: flex; align-items: flex-start; gap: 10px;
-        padding: 8px 10px; border-radius: 8px;
+      .explore-card {
+        display: block;
+        padding: 10px 12px 9px;
+        border-radius: 9px;
         background: rgba(255,255,255,0.03);
         border: 1px solid rgba(255,255,255,0.06);
         text-decoration: none;
         transition: background 0.15s, border-color 0.15s;
         margin-bottom: 6px;
       }
-      .article-post:last-child { margin-bottom: 0; }
-      .article-post:hover { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.1); }
-      .article-post .ap-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-      .article-post .ap-title {
-        font-size: 0.78rem; color: rgba(255,255,255,0.7);
-        line-height: 1.4; display: -webkit-box;
-        -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+      .explore-card:last-child { margin-bottom: 0; }
+      .explore-card:hover { background: rgba(255,255,255,0.055); border-color: rgba(255,255,255,0.11); }
+      .explore-card .ec-question {
+        font-size: 0.8rem; font-weight: 500;
+        color: rgba(255,255,255,0.75);
+        line-height: 1.4; margin-bottom: 5px;
       }
-      .article-post .ap-meta {
-        font-size: 0.65rem; color: rgba(255,255,255,0.25);
+      .explore-card .ec-source {
+        display: flex; align-items: center; gap: 5px;
       }
-      .article-post .ap-points {
-        font-size: 0.62rem; font-weight: 600;
-        color: rgba(255,120,50,0.6);
-        white-space: nowrap; padding-top: 1px;
+      .explore-card .ec-source-dot {
+        width: 4px; height: 4px; border-radius: 50%;
+        background: rgba(255,255,255,0.2); flex-shrink: 0;
+      }
+      .explore-card .ec-source-name {
+        font-size: 0.63rem; color: rgba(255,255,255,0.28);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .explore-card .ec-arrow {
+        float: right; margin-top: -18px;
+        color: rgba(255,255,255,0.18);
+        font-size: 0.7rem; line-height: 1;
       }
 
       /* Result image banner */
@@ -1105,14 +1113,14 @@
           </div>
         </div>
 
-        <div id="articlesSection" class="hidden">
-          <div class="articles-label">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="color:rgba(255,165,0,0.7)">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+        <div id="exploreSection" class="hidden">
+          <div class="explore-label">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:rgba(255,255,255,0.3)">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
-            Further Reading
+            Go Deeper
           </div>
-          <div id="articlePosts"></div>
+          <div id="exploreCards"></div>
         </div>
         <div id="redditSection" class="hidden">
           <div class="reddit-label">
@@ -2586,8 +2594,8 @@
         document.getElementById('learnMoreSection').classList.add('hidden');
         document.getElementById('deeperResources').innerHTML = '';
         document.getElementById('deeperResourcesLabel').style.display = 'none';
-        document.getElementById('articlesSection').classList.add('hidden');
-        document.getElementById('articlePosts').innerHTML = '';
+        document.getElementById('exploreSection').classList.add('hidden');
+        document.getElementById('exploreCards').innerHTML = '';
         document.getElementById('redditSection').classList.add('hidden');
         document.getElementById('redditPosts').innerHTML = '';
         lastMarkdown = '';
@@ -2731,21 +2739,24 @@
               followupSection.classList.add('hidden');
             }
 
-            // HackerNews articles
-            const articlesSection = document.getElementById('articlesSection');
-            const articlePosts    = document.getElementById('articlePosts');
-            if (data.articles && data.articles.length) {
-              articlePosts.innerHTML = data.articles.map(a => `
-                <a class="article-post" href="${a.url}" target="_blank" rel="noopener noreferrer">
-                  <div class="ap-text">
-                    <span class="ap-title">${a.title}</span>
-                    <span class="ap-meta">${a.source || a.domain}</span>
+            // Explore Deeper subtopics
+            const exploreSection = document.getElementById('exploreSection');
+            const exploreCards   = document.getElementById('exploreCards');
+            if (data.exploreTopics && data.exploreTopics.length) {
+              exploreCards.innerHTML = data.exploreTopics.map(t => {
+                const sourceName = t.article.source || ((() => { try { return new URL(t.article.url).hostname.replace(/^www\./, ''); } catch { return ''; } })());
+                return `<a class="explore-card" href="${t.article.url}" target="_blank" rel="noopener noreferrer">
+                  <div class="ec-question">${t.question}</div>
+                  <div class="ec-source">
+                    <span class="ec-source-dot"></span>
+                    <span class="ec-source-name">${sourceName}</span>
                   </div>
-                  ${a.points ? `<span class="ap-points">${a.points.toLocaleString()} pts</span>` : ''}
-                </a>`).join('');
-              articlesSection.classList.remove('hidden');
+                  <span class="ec-arrow">↗</span>
+                </a>`;
+              }).join('');
+              exploreSection.classList.remove('hidden');
             } else {
-              articlesSection.classList.add('hidden');
+              exploreSection.classList.add('hidden');
             }
 
             // Reddit posts
