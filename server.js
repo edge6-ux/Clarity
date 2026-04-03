@@ -412,7 +412,7 @@ app.post("/analyze", rateLimiter, upload.single("file"), async (req, res) => {
 
     const text = aiResponse.choices[0]?.message?.content ?? "";
 
-    // Generate follow-up questions and explore subtopics in parallel
+    // Generate follow-up chips and explore subtopics in parallel AI calls
     let followUps = [];
     let exploreTopics = [];
 
@@ -421,7 +421,7 @@ app.post("/analyze", rateLimiter, upload.single("file"), async (req, res) => {
         model: "gpt-4o-mini",
         max_tokens: 150,
         messages: [
-          { role: "system", content: `Generate exactly 3 short follow-up questions for a topic. Mix:
+          { role: "system", content: `Generate exactly 3 short questions that challenge or extend a topic. Mix:
 1. A devil's advocate or contrarian challenge
 2. A common misconception or overlooked angle
 3. A "what happens next" or consequence-based question
@@ -446,36 +446,52 @@ No other text.` },
       }),
     ]);
 
-    // Parse follow-ups
+    // Parse both AI responses
+    let fuQuestions = [];
+    let etSubtopics = [];
     try {
       if (fuRes.status === 'fulfilled') {
         const raw = fuRes.value.choices[0]?.message?.content ?? "[]";
-        followUps = JSON.parse(raw.match(/\[[\s\S]*\]/)?.[0] ?? "[]");
+        fuQuestions = JSON.parse(raw.match(/\[[\s\S]*\]/)?.[0] ?? "[]");
       }
-    } catch { followUps = []; }
-
-    // Parse subtopics then fetch one article per subtopic
+    } catch { fuQuestions = []; }
     try {
       if (etRes.status === 'fulfilled') {
         const raw = etRes.value.choices[0]?.message?.content ?? "[]";
-        const subtopics = JSON.parse(raw.match(/\[[\s\S]*\]/)?.[0] ?? "[]");
-        const articleResults = await Promise.all(
-          subtopics.map(s => fetchGoogleNewsArticles(s.searchQuery))
-        );
-        exploreTopics = subtopics.map((s, i) => {
-          const article = articleResults[i]?.[0] ?? null;
-          const wikiSlug = encodeURIComponent(s.searchQuery.replace(/\s+/g, '_'));
-          return {
-            question: s.question,
-            article: article ?? {
-              title: s.searchQuery,
-              url: `https://en.wikipedia.org/wiki/${wikiSlug}`,
-              source: 'Wikipedia',
-            },
-          };
-        });
+        etSubtopics = JSON.parse(raw.match(/\[[\s\S]*\]/)?.[0] ?? "[]");
       }
-    } catch { exploreTopics = []; }
+    } catch { etSubtopics = []; }
+
+    // Fetch all articles in one parallel batch (3 follow-ups + 3 explore)
+    const allArticles = await Promise.all([
+      ...fuQuestions.map(q => fetchGoogleNewsArticles(q)),
+      ...etSubtopics.map(s => fetchGoogleNewsArticles(s.searchQuery)),
+    ]);
+
+    // Build followUps as {question, url, source} — each chip is a direct link
+    followUps = fuQuestions.map((q, i) => {
+      const article = allArticles[i]?.[0] ?? null;
+      const wikiSlug = encodeURIComponent(q.replace(/[?!.]+$/, '').trim().replace(/\s+/g, '_'));
+      return {
+        question: q,
+        url:    article?.url    ?? `https://en.wikipedia.org/wiki/${wikiSlug}`,
+        source: article?.source ?? 'Wikipedia',
+      };
+    });
+
+    // Build exploreTopics as {question, article}
+    exploreTopics = etSubtopics.map((s, i) => {
+      const article = allArticles[fuQuestions.length + i]?.[0] ?? null;
+      const wikiSlug = encodeURIComponent(s.searchQuery.replace(/\s+/g, '_'));
+      return {
+        question: s.question,
+        article: article ?? {
+          title: s.searchQuery,
+          url: `https://en.wikipedia.org/wiki/${wikiSlug}`,
+          source: 'Wikipedia',
+        },
+      };
+    });
 
     res.json({ topic, result: text, image: image ?? null, reddit: redditPosts, exploreTopics, followUps });
   } catch (err) {

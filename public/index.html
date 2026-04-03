@@ -337,7 +337,7 @@
       /* ─── Mobile overrides ───────────────────────────────────────────── */
       @media (max-width: 768px) {
         /* Prevent iOS auto-zoom on input focus (requires font-size >= 16px) */
-        .glass-input, .menu-auth-input, #learnMoreText {
+        .glass-input, .menu-auth-input {
           font-size: 16px !important;
         }
 
@@ -352,7 +352,7 @@
         .menu-btn-primary, .menu-btn-ghost { padding: 0.75rem 1rem; }
 
         /* Bump the tiniest section labels up slightly */
-        .followup-label, .deeper-section-label, .menu-section-label, .panel-section-label {
+        .followup-label, .menu-section-label, .panel-section-label {
           font-size: 0.68rem;
         }
 
@@ -457,39 +457,8 @@
         text-align: left;
       }
       .followup-chip:hover { background: var(--chip-bg); border-color: var(--chip-border); color: rgba(255,255,255,0.85); }
-      .followup-chip.active { background: var(--chip-bg); border-color: var(--chip-border); color: rgba(255,255,255,0.9); }
 
-      #followupAnswer {
-        margin-top: 14px; font-size: 0.82rem; color: rgba(255,255,255,0.65);
-        line-height: 1.75; padding: 12px 14px;
-        background: rgba(255,255,255,0.03);
-        border: 1px solid rgba(255,255,255,0.07);
-        border-radius: 10px;
-      }
 
-      #learnMoreSection { margin-top: 14px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 14px; }
-      .deeper-section-label {
-        font-size: 0.6rem; font-weight: 600; letter-spacing: 0.1em;
-        text-transform: uppercase; color: rgba(255,255,255,0.22);
-        margin-bottom: 8px; margin-top: 12px;
-      }
-      .deeper-section-label:first-child { margin-top: 0; }
-      /* Resource links */
-      .deeper-resources { display: flex; flex-direction: column; gap: 5px; margin-bottom: 4px; }
-      .deeper-resource {
-        display: flex; align-items: center; justify-content: space-between;
-        font-size: 0.78rem; color: rgba(255,255,255,0.55);
-        padding: 5px 10px;
-        background: rgba(255,255,255,0.03);
-        border: 1px solid rgba(255,255,255,0.06);
-        border-radius: 8px; text-decoration: none;
-        transition: background 0.15s, color 0.15s;
-      }
-      .deeper-resource:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.85); }
-      .deeper-resource-source { font-size: 0.68rem; color: rgba(255,255,255,0.28); flex-shrink: 0; margin-left: 8px; }
-      #learnMoreInput { display: flex; gap: 7px; margin-top: 10px; }
-      #learnMoreInput input  { flex: 1; font-size: 0.75rem; padding: 6px 12px; border-radius: 8px; }
-      #learnMoreInput button { font-size: 0.72rem; padding: 6px 14px; border-radius: 8px; white-space: nowrap; }
 
       /* ─── Explore Deeper section ────────────────────────────────────── */
       #exploreSection {
@@ -1100,17 +1069,6 @@
         <div id="followupSection" class="hidden">
           <div class="followup-label">Dig deeper</div>
           <div class="followup-chips" id="followupChips"></div>
-          <div id="followupCustomInput" style="display:flex;align-items:center;gap:6px;margin-top:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:999px;padding:4px 4px 4px 14px;">
-            <input id="learnMoreText" placeholder="Ask your own question…" onkeydown="if(event.key==='Enter')submitLearnMore()" style="flex:1;background:none;border:none;outline:none;color:#fff;font-size:0.72rem;line-height:1;" />
-            <button onclick="submitLearnMore()" style="display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:999px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.6);flex-shrink:0;transition:background 0.15s,color 0.15s;" onmouseover="this.style.background='var(--chip-bg)';this.style.color='rgba(255,255,255,0.9)'" onmouseout="this.style.background='rgba(255,255,255,0.08)';this.style.color='rgba(255,255,255,0.6)'">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            </button>
-          </div>
-          <div id="followupAnswer" class="hidden"></div>
-          <div id="learnMoreSection" class="hidden">
-            <div class="deeper-section-label" id="deeperResourcesLabel" style="display:none">Read more</div>
-            <div class="deeper-resources" id="deeperResources"></div>
-          </div>
         </div>
 
         <div id="exploreSection" class="hidden">
@@ -2587,13 +2545,6 @@
         topicInput.value = AUTOFILL;
         document.getElementById('followupSection').classList.add('hidden');
         document.getElementById('followupChips').innerHTML = '';
-        document.getElementById('followupCustomInput').style.display = 'flex';
-        document.getElementById('learnMoreText').value = '';
-        document.getElementById('followupAnswer').classList.add('hidden');
-        document.getElementById('followupAnswer').textContent = '';
-        document.getElementById('learnMoreSection').classList.add('hidden');
-        document.getElementById('deeperResources').innerHTML = '';
-        document.getElementById('deeperResourcesLabel').style.display = 'none';
         document.getElementById('exploreSection').classList.add('hidden');
         document.getElementById('exploreCards').innerHTML = '';
         document.getElementById('redditSection').classList.add('hidden');
@@ -2616,62 +2567,6 @@
         return mins === 1 ? '~1 min read' : `~${mins} min read`;
       }
 
-      async function handleFollowUp(chipEl, topic, question) {
-        // Mark active chip (if from a pill)
-        document.querySelectorAll('.followup-chip').forEach(c => c.classList.remove('active'));
-        if (chipEl) chipEl.classList.add('active');
-
-        // Hide the input row — this is a one-turn interaction
-        document.getElementById('followupCustomInput').style.display = 'none';
-
-        const answerEl      = document.getElementById('followupAnswer');
-        const learnMoreEl   = document.getElementById('learnMoreSection');
-        answerEl.textContent = '…';
-        answerEl.classList.remove('hidden');
-        learnMoreEl.classList.add('hidden');
-
-        try {
-          const res  = await fetch('/followup', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ topic, question }),
-          });
-          const data = await res.json();
-          answerEl.textContent = data.answer ?? '';
-
-          // Resources — real external links for this specific question
-          const resourcesEl    = document.getElementById('deeperResources');
-          const resourcesLabel = document.getElementById('deeperResourcesLabel');
-          resourcesEl.innerHTML = '';
-          if (data.resources && data.resources.length) {
-            data.resources.forEach(r => {
-              let domain = '';
-              try { domain = new URL(r.url).hostname.replace('www.', ''); } catch {}
-              const a = document.createElement('a');
-              a.className = 'deeper-resource';
-              a.href      = r.url;
-              a.target    = '_blank';
-              a.rel       = 'noopener noreferrer';
-              a.innerHTML = `<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.title}</span><span class="deeper-resource-source">${domain}</span>`;
-              resourcesEl.appendChild(a);
-            });
-            resourcesLabel.style.display = '';
-          } else {
-            resourcesLabel.style.display = 'none';
-          }
-
-          learnMoreEl.classList.remove('hidden');
-        } catch {
-          answerEl.textContent = 'Something went wrong. Try again.';
-        }
-      }
-
-      function submitLearnMore() {
-        const val = document.getElementById('learnMoreText').value.trim();
-        if (!val) return;
-        document.getElementById('learnMoreText').value = '';
-        handleFollowUp(null, topicInput.value.trim(), val);
-      }
 
       async function analyze() {
         const raw = topicInput.value.trim();
@@ -2726,14 +2621,9 @@
             const followupSection = document.getElementById('followupSection');
             const followupChips   = document.getElementById('followupChips');
             if (data.followUps && data.followUps.length) {
-              followupChips.innerHTML = '';
-              data.followUps.forEach(q => {
-                const btn = document.createElement('button');
-                btn.className = 'followup-chip';
-                btn.textContent = q;
-                btn.onclick = () => handleFollowUp(btn, topic, q);
-                followupChips.appendChild(btn);
-              });
+              followupChips.innerHTML = data.followUps.map(f =>
+                `<a class="followup-chip" href="${f.url}" target="_blank" rel="noopener noreferrer">${f.question}</a>`
+              ).join('');
               followupSection.classList.remove('hidden');
             } else {
               followupSection.classList.add('hidden');
